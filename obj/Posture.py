@@ -21,7 +21,8 @@ class BVHPosture:
             self.channels_and_transformation_amounts[joint_name] = list_of_tuples
 
     def get_channels_and_amounts(self, joint_name:str) -> List[Tuple[bvh.Transformation, float]]:
-        return self.channels_and_transformation_amounts[joint_name]
+        return self.channels_and_transformation_amounts[joint_name].copy()
+
 
 # BVHPosture has dictionary of channel_and_transformation_amount with name of joint as key.
 # key is name of joint to make Posture can adopted to other skeletons that has same joint-name bindings.

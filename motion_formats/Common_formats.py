@@ -57,7 +57,7 @@ class Translation(Transformation):
     @override
     def get_affine_matrix(self, amount: Optional[float]) -> np.ndarray:
         M = np.identity(4)
-        M[-1,:3] = self.unit_axis * amount
+        M[-1,:3] = self.unit_axis[:3] * amount
         return M
     
     @override

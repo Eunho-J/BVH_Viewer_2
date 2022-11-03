@@ -13,7 +13,7 @@ class BVHMotion:
         self.channels_per_joint: Dict[str, List[bvh.Transformation]] = channels_per_joint
         
     def get_max_frame(self) -> int:
-        return len(self.postures)
+        return len(self.postures)-1
     
     def get_posture_at(self, frame:int) -> BVHPosture:
         return self.postures[frame]

@@ -2,7 +2,7 @@ from typing import List, Optional
 
 import PySide6
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtWidgets import QMenuBar, QStatusBar, QComboBox, QMainWindow, QPushButton, QCheckBox, QSpinBox, QSlider, QTabWidget, QWidget, QTreeWidget, QTreeWidgetItem
+from PySide6.QtWidgets import QLabel, QMenuBar, QStatusBar, QComboBox, QMainWindow, QPushButton, QCheckBox, QSpinBox, QSlider, QTabWidget, QWidget, QTreeWidget, QTreeWidgetItem
 
 
 from obj import BVHMotion, Skeleton, Joint
@@ -19,6 +19,7 @@ class MotionViewerWindow(QMainWindow):
         self.pushButton_stop: QPushButton
         self.slider_frame: QSlider
         self.spinBox_frame: QSpinBox
+        self.label_max_frame: QLabel
         
         self.openGLWidget: BVHOpenGLWidget
 
@@ -122,9 +123,26 @@ class MotionViewerWindow(QMainWindow):
         new_frame = self.spinBox_frame.value()
         self.openGLWidget.frame = new_frame
         self.slider_frame.setSliderPosition(new_frame)
+
+    def _ik_target_joint(self):
+        selected_joint:Optional[Joint] = self.comboBox_ik_target_joint.currentData()
+        self.gl_renderer.set_ik_target_joint(selected_joint)
+        if selected_joint is not None:
+            print("ik target:", selected_joint.name)
+        else:
+            print("ik target deselected")
+
+    def _ik_target_frame(self):
+        selected_frame:int = self.spinBox_ik_target_frame.value()
+        self.gl_renderer.set_ik_target_frame(selected_frame)
+        print("ik frame:", selected_frame)
+
+    def _ik_enable(self):
+        self.gl_renderer.ik_enabled = self.checkBox_ik_enable.isChecked()
+        print("ik enabled:", self.gl_renderer.ik_enabled)
     
     def init_ui(self):
-        self.gl_renderer: GLRenderer = GLRenderer()
+        self.gl_renderer: BVH_GLRenderer = BVH_GLRenderer()
 
         self.opengl_update_timer = QTimer(self)
         self.opengl_update_timer.timeout.connect(self._update_glwidget)
@@ -150,6 +168,10 @@ class MotionViewerWindow(QMainWindow):
         self.play_timer = QTimer(self.openGLWidget)
         self.play_timer.timeout.connect(self._next_frame)
 
+        self.comboBox_ik_target_joint.currentIndexChanged.connect(self._ik_target_joint)
+        self.spinBox_ik_target_frame.textChanged.connect(self._ik_target_frame)
+        self.checkBox_ik_enable.toggled.connect(self._ik_enable)
+
     
     def keyPressEvent(self, event: PySide6.QtGui.QKeyEvent) -> None:
         key = event.key()
@@ -159,6 +181,20 @@ class MotionViewerWindow(QMainWindow):
             self.pushButton_stop.click()
         elif key == Qt.Key.Key_V:
             self.checkBox_view_ortho.toggle()
+        elif key == Qt.Key.Key_W:
+            self.gl_renderer.move_desired_position(np.array([0,0.01,0,0], dtype=np.float32))
+        elif key == Qt.Key.Key_S:
+            self.gl_renderer.move_desired_position(np.array([0,-0.01,0,0], dtype=np.float32))
+        elif key == Qt.Key.Key_Q:
+            self.gl_renderer.move_desired_position(np.array([0.01,0,0,0], dtype=np.float32))
+        elif key == Qt.Key.Key_A:
+            self.gl_renderer.move_desired_position(np.array([-0.01,0,0,0], dtype=np.float32))
+        elif key == Qt.Key.Key_E:
+            self.gl_renderer.move_desired_position(np.array([0,0,0.01,0], dtype=np.float32))
+        elif key == Qt.Key.Key_D:
+            self.gl_renderer.move_desired_position(np.array([0,0,-0.01,0], dtype=np.float32))
+        elif key == Qt.Key.Key_R:
+            self.gl_renderer.reset_desired_position()
 
     def dragEnterEvent(self, event: PySide6.QtGui.QDragEnterEvent) -> None:
         if event.mimeData().hasUrls():
@@ -172,20 +208,24 @@ class MotionViewerWindow(QMainWindow):
         self.pushButton_stop.click()
         print("parse file: ", event.mimeData().urls()[0].path())
         parsed_skeleton, parsed_bvh_motion = self.bvh_parser.parse_file(event.mimeData().urls()[0].path())
-        new_bvh_gl_render_object = BVH_GLRenderObject(parsed_bvh_motion, parsed_skeleton)
-        print("total objects:",self.gl_renderer.clear_and_append_object(new_bvh_gl_render_object))
+        self.gl_renderer.set_object(parsed_skeleton, parsed_bvh_motion)
         self.max_frame = self.gl_renderer.get_max_frame()
-        self.frame_time = int(1000 * self.gl_renderer.get_min_frame_time())
+        self.frame_time = int(1000 * self.gl_renderer.get_frame_time())
         print("interval:", self.frame_time)
         self.play_timer.setInterval(self.frame_time)
         self.slider_frame.setMaximum(self.max_frame)
         self.spinBox_frame.setMaximum(self.max_frame)
+
+        self.spinBox_ik_target_frame.setMaximum(self.max_frame)
+        self.spinBox_ik_target_frame.setValue(0)
+        self.label_max_frame.setText("frames: "+str(self.max_frame))
+
         self.treeWidget.takeTopLevelItem(0)
         self.treeWidget.addTopLevelItem(self.get_skeleton_tree_item_recursive(parsed_skeleton.root))
         # self.openGLWidget.update()
         
     def get_skeleton_tree_item_recursive(self, joint: Joint, parent:Optional[QTreeWidgetItem] = None) -> QTreeWidgetItem:
-        if joint.parent_depth >= 2:
+        if joint.parent_depth >= 3:
             self.comboBox_ik_target_joint.addItem(joint.name, joint)
         if parent is None:
             parent = self.treeWidget

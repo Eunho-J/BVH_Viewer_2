@@ -33,4 +33,34 @@ class Joint:
         for i in range(len(self.children)):
             joint_list.extend(self.children[i].get_joints_recursive())
         return joint_list
+
+    def has_child_or_parent(self, target:Self) -> bool:
+        if self.name == target.name:
+            return True
+        for child in self.children:
+            if child.has_child_or_parent(target):
+                return True
+        parent = self.parent
+        while parent is not None:
+            if parent.name == target.name:
+                return True
+            parent = parent.parent
+        return False
+
+    def has_child(self, target:Self) -> bool:
+        if self.name == target.name:
+            return True
+        for child in self.children:
+            if child.has_child_or_parent(target):
+                return True
+        return False
+
+    def has_parent(self, target:Self) -> bool:
+        parent = self.parent
+        while parent is not None:
+            if parent.name == target.name:
+                return True
+            parent = parent.parent
+        return False
+
         
