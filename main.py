@@ -15,6 +15,7 @@ if sys.platform == 'linux':
 elif sys.platform == 'darwin':
     os.environ["LLVM_INSTALL_DIR"] = os.path.dirname(os.path.realpath(__file__))+"/../libclang/macos"
 
+print("LLVM_INSTALL_DIR:", os.environ["LLVM_INSTALL_DIR"])
 
 
 def main():
