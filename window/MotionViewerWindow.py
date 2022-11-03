@@ -225,7 +225,7 @@ class MotionViewerWindow(QMainWindow):
         # self.openGLWidget.update()
         
     def get_skeleton_tree_item_recursive(self, joint: Joint, parent:Optional[QTreeWidgetItem] = None) -> QTreeWidgetItem:
-        if joint.parent_depth >= 3:
+        if joint.parent_depth >= 2:
             self.comboBox_ik_target_joint.addItem(joint.name, joint)
         if parent is None:
             parent = self.treeWidget
