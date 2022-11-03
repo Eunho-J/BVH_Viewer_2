@@ -185,5 +185,6 @@ class BVH_GLRenderer(GLRenderer):
     def set_ik_target_joint(self, ik_target_joint):
         self.ik_target_joint = ik_target_joint
         self.ik_desired_position = None
-        self.ik.calculate_ik(self.motion.get_posture_at(self.ik_frame), self.ik_target_joint, self.ik_desired_position)
-        self.ik_desired_position = self.ik.target_joint_transform_matrix.T @ np.array([0,0,0,1], dtype=np.float32)
+        if self.ik_target_joint is not None:
+            self.ik.calculate_ik(self.motion.get_posture_at(self.ik_frame), self.ik_target_joint, self.ik_desired_position)
+            self.ik_desired_position = self.ik.target_joint_transform_matrix.T @ np.array([0,0,0,1], dtype=np.float32)
