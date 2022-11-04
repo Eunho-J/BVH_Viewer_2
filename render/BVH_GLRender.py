@@ -17,7 +17,7 @@ class BVH_GLRenderer(GLRenderer):
 
         self.motion: Optional[BVHMotion]
         self.ik: Optional[BVH_IK] = BVH_IK(None)
-        self.ik_frame_interval = 10
+        self.ik_frame_interval = 30
 
     def set_object(self, skeleton, motion):
         super().set_object(skeleton, motion)
@@ -86,36 +86,31 @@ class BVH_GLRenderer(GLRenderer):
 
             for transformation, amount in posture.get_channels_and_amounts(joint.name):
                 transformation.gl_apply(amount)
+                
+            if self.ik_enabled and self.ik_target_joint is not None:
+                if self.ik_target_joint.parent.parent.name == joint.name:
+                    self.ik.rotate_tau(1)
+                    self.ik.rotate_alpha(1)
+                elif self.ik_target_joint.parent.name == joint.name:
+                    self.ik.rotate_beta(1)
+
+                if self.ik_enabled and self.ik_target_joint.name == joint.name:
+                    tmp_Color = gl.glGetFloatv(gl.GL_CURRENT_COLOR)
+                    tmp_point_size = gl.glGetFloat(gl.GL_POINT_SIZE)
+                    gl.glColor3ub(50, 200, 50)
+                    gl.glPointSize(8)
+                    gl.glBegin(gl.GL_POINTS)
+                    gl.glVertex3f(0,0,0)
+                    gl.glEnd()
+                    gl.glPointSize(tmp_point_size)
+                    gl.glColor4f(tmp_Color[0], tmp_Color[1], tmp_Color[2], tmp_Color[3])
 
 
         if self.render_joint_axis:
             GLRenderer.gl_render_axis(1/10)
 
         for child in joint.children:
-            
-            if self.ik_enabled and self.ik_target_joint is not None\
-                and child.has_child_or_parent(self.ik_target_joint) and frame is not None:
-                    gl.glPushMatrix()
-                    if self.ik_target_joint.parent.parent.name == joint.name:
-                        self.ik.rotate_tau(1)
-                        self.ik.rotate_alpha(1)
-                    elif self.ik_target_joint.parent.name == joint.name:
-                        self.ik.rotate_beta(1)
-
-                    if self.ik_enabled and self.ik_target_joint.name == joint.name:
-                        tmp_Color = gl.glGetFloatv(gl.GL_CURRENT_COLOR)
-                        tmp_point_size = gl.glGetFloat(gl.GL_POINT_SIZE)
-                        gl.glColor3ub(50, 200, 50)
-                        gl.glPointSize(8)
-                        gl.glBegin(gl.GL_POINTS)
-                        gl.glVertex3f(0,0,0)
-                        gl.glEnd()
-                        gl.glPointSize(tmp_point_size)
-                        gl.glColor4f(tmp_Color[0], tmp_Color[1], tmp_Color[2], tmp_Color[3])
-                    self.gl_render_ik_target_bvh(frame, child)
-                    gl.glPopMatrix()
-            else:
-                self.gl_render_ik_target_bvh(frame, child)
+            self.gl_render_ik_target_bvh(frame, child)
 
         gl.glPopMatrix()
 
@@ -137,36 +132,32 @@ class BVH_GLRenderer(GLRenderer):
 
             for transformation, amount in posture.get_channels_and_amounts(joint.name):
                 transformation.gl_apply(amount)
+                
+            if self.ik_enabled and self.ik_target_joint is not None:
+                frame_diff = np.abs(frame - self.ik_frame)
+                if frame_diff <= self.ik_frame_interval:
+                    if self.ik_target_joint.parent.parent.name == joint.name:
+                        self.ik.rotate_tau(1 - frame_diff / self.ik_frame_interval)
+                        self.ik.rotate_alpha(1 - frame_diff / self.ik_frame_interval)
+                    elif self.ik_target_joint.parent.name == joint.name:
+                        self.ik.rotate_beta(1 - frame_diff / self.ik_frame_interval)
+
+                if self.ik_enabled and self.ik_target_joint.name == joint.name:
+                    tmp_Color = gl.glGetFloatv(gl.GL_CURRENT_COLOR)
+                    tmp_point_size = gl.glGetFloat(gl.GL_POINT_SIZE)
+                    gl.glColor3ub(50, 200, 50)
+                    gl.glPointSize(8)
+                    gl.glBegin(gl.GL_POINTS)
+                    gl.glVertex3f(0,0,0)
+                    gl.glEnd()
+                    gl.glPointSize(tmp_point_size)
+                    gl.glColor4f(tmp_Color[0], tmp_Color[1], tmp_Color[2], tmp_Color[3])
 
         if self.render_joint_axis:
             GLRenderer.gl_render_axis(1/10)
 
         for child in joint.children:
-            if self.ik_enabled and self.ik_target_joint is not None\
-                and child.has_child_or_parent(self.ik_target_joint) and frame is not None:
-                    frame_diff = np.abs(frame - self.ik_frame)
-                    gl.glPushMatrix()
-                    if frame_diff <= self.ik_frame_interval:
-                        if self.ik_target_joint.parent.parent.name == joint.name:
-                            self.ik.rotate_tau(1 - frame_diff / self.ik_frame_interval)
-                            self.ik.rotate_alpha(1 - frame_diff / self.ik_frame_interval)
-                        elif self.ik_target_joint.parent.name == joint.name:
-                            self.ik.rotate_beta(1 - frame_diff / self.ik_frame_interval)
-
-                    if self.ik_enabled and self.ik_target_joint.name == joint.name:
-                        tmp_Color = gl.glGetFloatv(gl.GL_CURRENT_COLOR)
-                        tmp_point_size = gl.glGetFloat(gl.GL_POINT_SIZE)
-                        gl.glColor3ub(50, 200, 50)
-                        gl.glPointSize(8)
-                        gl.glBegin(gl.GL_POINTS)
-                        gl.glVertex3f(0,0,0)
-                        gl.glEnd()
-                        gl.glPointSize(tmp_point_size)
-                        gl.glColor4f(tmp_Color[0], tmp_Color[1], tmp_Color[2], tmp_Color[3])
-                    self.gl_render_bvh_recursive(frame, child)
-                    gl.glPopMatrix()
-            else:
-                self.gl_render_bvh_recursive(frame, child)
+            self.gl_render_bvh_recursive(frame, child)
 
         gl.glPopMatrix()
 
