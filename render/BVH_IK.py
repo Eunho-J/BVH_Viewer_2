@@ -1,4 +1,3 @@
-from optparse import Option
 from typing import Optional
 
 import OpenGL.GL as gl
