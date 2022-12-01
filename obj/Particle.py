@@ -17,8 +17,8 @@ class Particle:
         self.force: np.ndarray = np.array([0,0,0,0], dtype=np.float32)
         self.pinned: bool = False
         
-        self.before_position: np.ndarray = position
-        self.before_velocity: np.ndarray = self.velocity
+        self.position_cache: np.ndarray = position
+        self.velocity_cache: np.ndarray = self.velocity
 
     def pin(self):
         self.pinned = True
@@ -34,6 +34,7 @@ class Particle_System:
     def __init__(self) -> None:
         self.particles: List[Particle] = []
         self.clock: float = 0.0
+        self.clock_cache: float = self.clock
         self.forces: List[Force] = []
 
     def append_particle(self, particle:Particle) -> None:
@@ -79,11 +80,12 @@ class Particle_System:
             if particle.pinned:
                 continue
             #update position
-            particle.before_position = particle.position.copy()
+            particle.position_cache = particle.position.copy()
             particle.position += dx_list[i]
             #update velocity
-            particle.before_velocity = particle.velocity.copy()
+            particle.velocity_cache = particle.velocity.copy()
             particle.velocity += dv_list[i]
+        self.clock_cache = self.clock
         self.clock += dt
         
     def semi_implicit_euler_step(self, dt:float) -> None:
@@ -124,12 +126,13 @@ class Particle_System:
             particle.position = x_init_list[i]
             particle.velocity = v_init_list[i]
             #update position
-            particle.before_position = particle.position.copy()
+            particle.position_cache = particle.position.copy()
             particle.position += dx_list[i]
             #update velocity
-            particle.before_velocity = particle.velocity.copy()
+            particle.velocity_cache = particle.velocity.copy()
             particle.velocity += dv_list[i]
-            
+        
+        self.clock_cache = self.clock
         self.clock += dt
         
         
