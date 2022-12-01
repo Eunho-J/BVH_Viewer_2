@@ -25,13 +25,12 @@ class BVH_GLRenderer(GLRenderer):
         self.particle_update_interval: float = 20
 
         # naive particle
-        self.one_particle = Particle(mass=2, position=np.array([0,1,0,1], dtype=np.float32))
-        self.two_particle = Particle(position=np.array([0,2,0,1], dtype=np.float32))
+        self.one_particle = Particle(mass=5, position=np.array([1,1,0,1], dtype=np.float32))
+        self.two_particle = Particle(position=np.array([0,1,0,1], dtype=np.float32))
         
         self.particle_system.append_particle(self.one_particle)
         self.particle_system.append_particle(self.two_particle)
         self.particle_system.append_force(Gravity_Force(self.one_particle, self.particle_system))
-        # self.particle_system.append_force(Gravity_Force(self.two_particle, self.particle_system))
         self.particle_system.append_force(Damped_Spring_Force(self.one_particle, self.particle_system,
                     self.two_particle, 100.0, 0, 1))
         self.two_particle.pin()

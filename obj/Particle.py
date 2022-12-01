@@ -6,6 +6,7 @@ from attrdict import AttrDict
 from np import *
 import utils
 
+
 class Particle:
     def __init__(self, 
                  mass:float = 1.0, 
@@ -15,6 +16,9 @@ class Particle:
         self.velocity: np.ndarray = np.array([0,0,0,0], dtype=np.float32)
         self.force: np.ndarray = np.array([0,0,0,0], dtype=np.float32)
         self.pinned: bool = False
+        
+        self.before_position: np.ndarray = position
+        self.before_velocity: np.ndarray = self.velocity
 
     def pin(self):
         self.pinned = True
@@ -75,8 +79,10 @@ class Particle_System:
             if particle.pinned:
                 continue
             #update position
+            particle.before_position = particle.position.copy()
             particle.position += dx_list[i]
             #update velocity
+            particle.before_velocity = particle.velocity.copy()
             particle.velocity += dv_list[i]
         self.clock += dt
         
@@ -118,8 +124,10 @@ class Particle_System:
             particle.position = x_init_list[i]
             particle.velocity = v_init_list[i]
             #update position
+            particle.before_position = particle.position.copy()
             particle.position += dx_list[i]
             #update velocity
+            particle.before_velocity = particle.velocity.copy()
             particle.velocity += dv_list[i]
             
         self.clock += dt
@@ -186,3 +194,22 @@ class Gravity_Force(Force):
     @override
     def apply(self):
         self.p.force += self.p.mass * self.g * self.direction_unit
+
+
+
+#-----------------Collider-------------------
+
+class Collider:
+    def __init__(self, system: Particle_System, k: float = 1.0) -> None:
+        self.system: Particle_System = system
+        self.k: float = k
+    
+    @abstractmethod
+    def _apply_collision(self):
+        pass
+    
+    @abstractmethod
+    def check_collision(self):
+        pass
+    
+    
