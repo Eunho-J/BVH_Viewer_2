@@ -111,67 +111,74 @@ class Particle_System:
         dt = dt / 1000
         self._clear_forces()
         self._compute_forces()
-        # get state
-        v_list = [ particle.velocity for particle in self.particles ]
-        a_list = [ particle.force / particle.mass for particle in self.particles ]
-        # scale vector with dt
-        dx_list = [ v * dt for v in v_list ]
-        dv_list = [ a * dt for a in a_list ]
+
         # update state
         for i, particle in enumerate(self.particles):
             if particle.pinned:
                 continue
+
+            dx = particle.velocity * dt
+
+            for collider in self.colliders:
+                if collider.check_contact(particle, dt):
+                    collider.apply_contact(particle, dt)
+
+            dv = particle.force * dt / particle.mass
             #update position
             particle.position_prev = particle.position.copy()
-            particle.position += dx_list[i]
+            particle.position += dx
             #update velocity
-            particle.velocity += dv_list[i]
+            particle.velocity += dv
         
         self._compute_collisions()
         self.clock += dt
         
     def semi_implicit_euler_step(self, dt:float) -> None:
         dt = dt / 1000
+        
+        self._clear_forces()
+        self._compute_forces()
+
+
         #get initial state
         v_init_list = [ particle.velocity.copy() for particle in self.particles ]
         x_init_list = [ particle.position.copy() for particle in self.particles ]
         
-        self._clear_forces()
-        self._compute_forces()
-        # get state
-        v_list = [ particle.velocity for particle in self.particles ]
-        a_list = [ particle.force / particle.mass for particle in self.particles ]
-        # scale vector with dt
-        dx_list = [ v * dt for v in v_list ]
-        dv_list = [ a * dt for a in a_list ]
         # update state
         for i, particle in enumerate(self.particles):
             if particle.pinned:
                 continue
+            dx = particle.velocity * dt
+            dv = particle.force * dt / particle.mass
             #update position
-            particle.position += dx_list[i]
+            particle.position += dx
             #update velocity
-            particle.velocity += dv_list[i]
+            particle.velocity += dv
         
         self._clear_forces()
         self._compute_forces()
-        # get state
-        v_list = [ particle.velocity for particle in self.particles ]
-        a_list = [ particle.force / particle.mass for particle in self.particles ]
-        # scale vector with dt
-        dx_list = [ v * dt for v in v_list ]
-        dv_list = [ a * dt for a in a_list ]
+
         # reset state to initial and update
         for i, particle in enumerate(self.particles):
             if particle.pinned:
                 continue
+
+            dx = particle.velocity * dt
+
             particle.position = x_init_list[i]
             particle.velocity = v_init_list[i]
+
+            for collider in self.colliders:
+                if collider.check_contact(particle, dt):
+                    collider.apply_contact(particle, dt)
+
+            dv = particle.force * dt / particle.mass
+
             #update position
             particle.position_prev = particle.position.copy()
-            particle.position += dx_list[i]
+            particle.position += dx
             #update velocity
-            particle.velocity += dv_list[i]
+            particle.velocity += dv
         
         self._compute_collisions()
         self.clock += dt
@@ -246,7 +253,7 @@ class Gravity_Force(Force):
 class Collider:
     def __init__(self, k: float = 1.0, myu: float = 0.0) -> None:
         self.k: float = k
-        self.eps: float = 0.00000001
+        self.eps: float = 0.002
         self.myu: float = myu
     
     @abstractmethod
@@ -258,20 +265,20 @@ class Collider:
         pass
     
     @abstractmethod
-    def apply_contact(self, particle: Particle):
+    def apply_contact(self, particle: Particle, dt: float):
         pass
 
     @abstractmethod
-    def check_contact(self, particle: Particle):
+    def check_contact(self, particle: Particle, dt: float) -> bool:
         pass
     
     
 class Infinite_Plane_Collider(Collider):
     def __init__(self, 
-                 normal_vector: np.ndarray = np.array([0,1,0,0], dtype=np.float32),
-                 passing_point: np.ndarray = np.array([0,0,0,1], dtype=np.float32),
-                 k: float = 1.0,
-                 myu: float = 0.0
+                normal_vector: np.ndarray = np.array([0,1,0,0], dtype=np.float32),
+                passing_point: np.ndarray = np.array([0,0,0,1], dtype=np.float32),
+                k: float = 1.0,
+                myu: float = 0.0
                 ) -> None:
         super().__init__(k, myu)
         self.norm: np.ndarray = utils.numpy_get_unit(normal_vector)
@@ -307,19 +314,49 @@ class Infinite_Plane_Collider(Collider):
         return False, collision_point
     
     @override
-    def apply_contact(self, particle: Particle):
-        pass
-    
+    def apply_contact(self, particle: Particle, dt: float):
+        # apply contact force
+        down_force = utils.decompose_by(particle.force, self.norm)
+        passpoint_to_particle = particle.position - self.passpoint
+        up_direction = utils.decompose_by(passpoint_to_particle, self.norm)
+
+        parallel_force = particle.force - down_force
+        friction_force: Optional[np.ndarray] = None
+
+        down_velocity = utils.decompose_by(particle.velocity, self.norm)
+        parallel_velocity = particle.velocity - down_velocity
+
+        if np.dot(down_force, up_direction) < 0: 
+            # means down_force is actually down directing
+            particle.force = parallel_force.copy()
+            if np.linalg.norm(parallel_velocity) > 0:
+                friction_force = self.myu * np.linalg.norm(down_force) * utils.numpy_get_unit(parallel_velocity)
+            else:
+                friction_force = np.array([0,0,0,0], dtype=np.float32)
+
+        maximum_friction_force = particle.mass * parallel_velocity / dt
+        if friction_force is not None:
+            if np.linalg.norm(friction_force) > np.linalg.norm(maximum_friction_force):
+                friction_force = maximum_friction_force
+            particle.force -= friction_force
+        
     @override
-    def check_contact(self, particle: Particle):
-        pass
+    def check_contact(self, particle: Particle, dt:float) -> bool:
+        distance = np.abs(np.dot(self.passpoint - particle.position, self.norm))
+        velocity_toward_plane = np.linalg.norm(utils.decompose_by(particle.velocity, self.norm))
+        if distance < self.eps:
+            if velocity_toward_plane * dt < self.eps:
+                return True
+
+        return False
+
+
     
-    
-class Triangle_Plane_Collider(Collider):
-    def __init__(self,
-                 vertex1: np.ndarray,
-                 vertex2: np.ndarray,
-                 vertex3: np.ndarray,
-                 k: float = 1.0
-                ) -> None:
-        super().__init__(k)
+# class Triangle_Plane_Collider(Collider):
+#     def __init__(self,
+#                 vertex1: np.ndarray,
+#                 vertex2: np.ndarray,
+#                 vertex3: np.ndarray,
+#                 k: float = 1.0
+#                 ) -> None:
+#         super().__init__(k)
