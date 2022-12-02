@@ -215,7 +215,7 @@ class Collider:
     def check_collision(self):
         pass
     
-class Plane_Collider(Collider):
+class Infinite_Plane_Collider(Collider):
     def __init__(self, system: Particle_System, k: float = 1.0,
                  normal_vector: np.ndarray = np.array([0,1,0,0], dtype=np.float32),
                  passing_point: np.ndarray = np.array([0,0,0,1], dtype=np.float32)) -> None:
@@ -223,3 +223,10 @@ class Plane_Collider(Collider):
         self.norm: np.ndarray = normal_vector
         self.passpoint: np.ndarray = passing_point
         
+    @override
+    def _apply_collision(self):
+        pass
+
+    @override
+    def check_collision(self):
+        pass
