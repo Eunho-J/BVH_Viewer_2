@@ -25,20 +25,20 @@ class BVH_GLRenderer(GLRenderer):
         self.particle_update_interval: float = 20
 
         # naive particle
-        self.one_particle = Particle(mass=5, position=np.array([1,1,0,1], dtype=np.float32))
-        self.two_particle = Particle(position=np.array([0,1,0,1], dtype=np.float32))
+        self.one_particle = Particle(mass=1, position=np.array([0.01,1,0,1], dtype=np.float32))
+        self.two_particle = Particle(position=np.array([0,0.5,0,1], dtype=np.float32))
         
         self.particle_system.append_particle(self.one_particle)
         self.particle_system.append_particle(self.two_particle)
         self.particle_system.append_force(Gravity_Force(self.one_particle, self.particle_system))
         self.particle_system.append_force(Damped_Spring_Force(self.one_particle, self.particle_system,
-                    self.two_particle, 100.0, 0))
+                    self.two_particle, 50.0, 0, 0.5))
         self.two_particle.pin()
         self.one_particle.enable_collision()
         
         self.particle_system.append_collider(Infinite_Plane_Collider(normal_vector=np.array([0,1,0,0], dtype=np.float32),
                                                                      passing_point=np.array([0,0,0,1], dtype=np.float32),
-                                                                     k=0.5,
+                                                                     k=0.6,
                                                                      myu=0.1))
         
         
@@ -88,7 +88,17 @@ class BVH_GLRenderer(GLRenderer):
         gl.glVertex3f(self.two_particle.position[0], self.two_particle.position[1], self.two_particle.position[2])
         gl.glEnd()
         gl.glPointSize(1)
+
+
+
+        gl.glColor3ub(110, 110, 110)
+        gl.glBegin(gl.GL_LINES)
+        gl.glVertex3f(self.two_particle.position[0], self.two_particle.position[1], self.two_particle.position[2])
+        gl.glVertex3f(self.one_particle.position[0], self.one_particle.position[1], self.one_particle.position[2])
+        gl.glEnd()
         gl.glColor3ub(255, 255, 255)
+
+
 
         if self.render_abs_axis:
             GLRenderer.gl_render_axis(1)
