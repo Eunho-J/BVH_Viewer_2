@@ -36,9 +36,14 @@ class BVH_GLRenderer(GLRenderer):
         self.two_particle.pin()
         self.one_particle.enable_collision()
         
-        self.particle_system.append_collider(Infinite_Plane_Collider(np.array([0,1,0,0], dtype=np.float32),
-                                                                     np.array([0,0,0,1], dtype=np.float32),
-                                                                     k=0.3))
+        self.particle_system.append_collider(Infinite_Plane_Collider(normal_vector=np.array([1,1,0,0], dtype=np.float32),
+                                                                     passing_point=np.array([0,-0.1,0,1], dtype=np.float32),
+                                                                     k=1))
+        
+        
+        self.particle_system.append_collider(Infinite_Plane_Collider(normal_vector=np.array([-1,1,0,0], dtype=np.float32),
+                                                                     passing_point=np.array([0,-0.1,0,1], dtype=np.float32),
+                                                                     k=1))
 
     def update_particle_dynamics(self):
         self.particle_system.semi_implicit_euler_step(self.particle_update_interval)

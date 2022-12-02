@@ -98,7 +98,7 @@ class Particle_System:
                         tmp_is_colliding, tmp_collision_point = tmp_collider.check_collision(particle)
                         if tmp_is_colliding:
                             tmp_distance_to_collision = utils.distance_of(particle.position_prev, tmp_collision_point)
-                            if not is_colliding or distance_to_collision > tmp_distance_to_collision:
+                            if not is_colliding or distance_to_collision >= tmp_distance_to_collision:
                                 is_colliding = tmp_is_colliding
                                 collider = tmp_collider
                                 collision_point = tmp_collision_point
@@ -274,7 +274,7 @@ class Infinite_Plane_Collider(Collider):
                  myu: float = 0.0
                 ) -> None:
         super().__init__(k, myu)
-        self.norm: np.ndarray = normal_vector
+        self.norm: np.ndarray = utils.numpy_get_unit(normal_vector)
         self.passpoint: np.ndarray = passing_point
         
     @override
@@ -300,11 +300,10 @@ class Infinite_Plane_Collider(Collider):
         if line_dot != 0:
             t = np.dot((self.passpoint - particle.position_prev), self.norm) / line_dot
             
-            if 0 <= t < 1:
+            if 0 < t <= 1:
                 collision_point = line_vector * t + particle.position_prev
                     
                 return True, collision_point
-        
         return False, collision_point
     
     @override
