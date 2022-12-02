@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from typing_extensions import override
 from attrdict import AttrDict
 
@@ -10,21 +10,29 @@ import utils
 class Particle:
     def __init__(self, 
                  mass:float = 1.0, 
-                 position: np.ndarray = np.array([0,0,0,0], dtype=np.float32)) -> None:
+                 position: np.ndarray = np.array([0,0,0,0], dtype=np.float32),
+                 collision_enabled: bool = False
+                 ) -> None:
         self.mass: float = mass
         self.position: np.ndarray = position
         self.velocity: np.ndarray = np.array([0,0,0,0], dtype=np.float32)
         self.force: np.ndarray = np.array([0,0,0,0], dtype=np.float32)
         self.pinned: bool = False
+        self.collision_enabled: bool = collision_enabled
         
-        self.position_cache: np.ndarray = position
-        self.velocity_cache: np.ndarray = self.velocity
+        self.position_prev: np.ndarray = position
 
     def pin(self):
         self.pinned = True
 
     def unpin(self):
         self.pinned = False
+        
+    def enable_collision(self):
+        self.collision_enabled = True
+        
+    def disable_collision(self):
+        self.collision_enabled = False
 
     def clear_force(self):
         self.force = np.zeros_like(self.force, dtype=np.float32)
@@ -34,8 +42,8 @@ class Particle_System:
     def __init__(self) -> None:
         self.particles: List[Particle] = []
         self.clock: float = 0.0
-        self.clock_cache: float = self.clock
         self.forces: List[Force] = []
+        self.colliders: List[Collider] = []
 
     def append_particle(self, particle:Particle) -> None:
         self.particles.append(particle)
@@ -56,6 +64,16 @@ class Particle_System:
             return True
         else :
             return False
+        
+    def append_collider(self, collider) -> None:
+        self.colliders.append(collider)
+
+    def remove_collider(self, collider) -> bool:
+        if self.colliders.count(collider):
+            self.colliders.remove(collider)
+            return True
+        else :
+            return False
 
     def _clear_forces(self) -> None:
         for particle in self.particles:
@@ -64,6 +82,30 @@ class Particle_System:
     def _compute_forces(self) -> None:
         for force in self.forces:
             force.apply()
+            
+    def _compute_collisions(self) -> None:
+        for particle in self.particles:
+            if particle.collision_enabled:
+                is_colliding = True
+                while is_colliding:
+                    
+                    is_colliding = False
+                    collider: Optional[Collider] = None
+                    collision_point: Optional[np.ndarray] = None
+                    distance_to_collision: float = 0.0
+                    
+                    for tmp_collider in self.colliders:
+                        tmp_is_colliding, tmp_collision_point = tmp_collider.check_collision(particle)
+                        if tmp_is_colliding:
+                            tmp_distance_to_collision = utils.distance_of(particle.position_prev, tmp_collision_point)
+                            if not is_colliding or distance_to_collision > tmp_distance_to_collision:
+                                is_colliding = tmp_is_colliding
+                                collider = tmp_collider
+                                collision_point = tmp_collision_point
+                                distance_to_collision = tmp_distance_to_collision
+                                
+                    if is_colliding:
+                        collider.apply_collision(particle, collision_point)
 
     def euler_step(self, dt:float) -> None:
         dt = dt / 1000
@@ -80,12 +122,12 @@ class Particle_System:
             if particle.pinned:
                 continue
             #update position
-            particle.position_cache = particle.position.copy()
+            particle.position_prev = particle.position.copy()
             particle.position += dx_list[i]
             #update velocity
-            particle.velocity_cache = particle.velocity.copy()
             particle.velocity += dv_list[i]
-        self.clock_cache = self.clock
+        
+        self._compute_collisions()
         self.clock += dt
         
     def semi_implicit_euler_step(self, dt:float) -> None:
@@ -126,13 +168,12 @@ class Particle_System:
             particle.position = x_init_list[i]
             particle.velocity = v_init_list[i]
             #update position
-            particle.position_cache = particle.position.copy()
+            particle.position_prev = particle.position.copy()
             particle.position += dx_list[i]
             #update velocity
-            particle.velocity_cache = particle.velocity.copy()
             particle.velocity += dv_list[i]
         
-        self.clock_cache = self.clock
+        self._compute_collisions()
         self.clock += dt
         
         
@@ -203,30 +244,83 @@ class Gravity_Force(Force):
 #-----------------Collider-------------------
 
 class Collider:
-    def __init__(self, system: Particle_System, k: float = 1.0) -> None:
-        self.system: Particle_System = system
+    def __init__(self, k: float = 1.0, myu: float = 0.0) -> None:
         self.k: float = k
+        self.eps: float = 0.00000001
+        self.myu: float = myu
     
     @abstractmethod
-    def _apply_collision(self):
+    def apply_collision(self, particle: Particle, collision_point: np.ndarray):
         pass
     
     @abstractmethod
-    def check_collision(self):
+    def check_collision(self, particle: Particle) -> Tuple[bool, Optional[np.ndarray]]:
         pass
+    
+    @abstractmethod
+    def apply_contact(self, particle: Particle):
+        pass
+
+    @abstractmethod
+    def check_contact(self, particle: Particle):
+        pass
+    
     
 class Infinite_Plane_Collider(Collider):
-    def __init__(self, system: Particle_System, k: float = 1.0,
+    def __init__(self, 
                  normal_vector: np.ndarray = np.array([0,1,0,0], dtype=np.float32),
-                 passing_point: np.ndarray = np.array([0,0,0,1], dtype=np.float32)) -> None:
-        super().__init__(system, k)
+                 passing_point: np.ndarray = np.array([0,0,0,1], dtype=np.float32),
+                 k: float = 1.0,
+                 myu: float = 0.0
+                ) -> None:
+        super().__init__(k, myu)
         self.norm: np.ndarray = normal_vector
         self.passpoint: np.ndarray = passing_point
         
     @override
-    def _apply_collision(self):
-        pass
-
+    def apply_collision(self, particle: Particle, collision_point: np.ndarray):
+        
+        assert collision_point is not None
+        
+        decomposed_movement = utils.decompose_by(particle.position - collision_point, self.norm)
+        decomposed_velocity = utils.decompose_by(particle.velocity, self.norm)
+    
+        # particle.position_prev = collision_point
+        
+        particle.position -= (1 + self.k) * decomposed_movement
+        particle.velocity -= (1 + self.k) * decomposed_velocity
+        
     @override
-    def check_collision(self):
+    def check_collision(self, particle: Particle) -> Tuple[bool, Optional[np.ndarray]]:
+        line_vector: np.ndarray = particle.position - particle.position_prev
+        collision_point: Optional[np.ndarray] = None
+        
+        line_dot = np.dot(line_vector, self.norm)
+        
+        if line_dot != 0:
+            t = np.dot((self.passpoint - particle.position_prev), self.norm) / line_dot
+            
+            if 0 <= t < 1:
+                collision_point = line_vector * t + particle.position_prev
+                    
+                return True, collision_point
+        
+        return False, collision_point
+    
+    @override
+    def apply_contact(self, particle: Particle):
         pass
+    
+    @override
+    def check_contact(self, particle: Particle):
+        pass
+    
+    
+class Triangle_Plane_Collider(Collider):
+    def __init__(self,
+                 vertex1: np.ndarray,
+                 vertex2: np.ndarray,
+                 vertex3: np.ndarray,
+                 k: float = 1.0
+                ) -> None:
+        super().__init__(k)

@@ -32,8 +32,13 @@ class BVH_GLRenderer(GLRenderer):
         self.particle_system.append_particle(self.two_particle)
         self.particle_system.append_force(Gravity_Force(self.one_particle, self.particle_system))
         self.particle_system.append_force(Damped_Spring_Force(self.one_particle, self.particle_system,
-                    self.two_particle, 100.0, 0, 1))
+                    self.two_particle, 100.0, 0))
         self.two_particle.pin()
+        self.one_particle.enable_collision()
+        
+        self.particle_system.append_collider(Infinite_Plane_Collider(np.array([0,1,0,0], dtype=np.float32),
+                                                                     np.array([0,0,0,1], dtype=np.float32),
+                                                                     k=0.3))
 
     def update_particle_dynamics(self):
         self.particle_system.semi_implicit_euler_step(self.particle_update_interval)
