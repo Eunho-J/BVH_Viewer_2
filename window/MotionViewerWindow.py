@@ -2,11 +2,13 @@ from typing import List, Optional
 
 import PySide6
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtWidgets import QLabel, QMenuBar, QStatusBar, QComboBox, QMainWindow, QPushButton, QCheckBox, QSpinBox, QSlider, QTabWidget, QWidget, QTreeWidget, QTreeWidgetItem
+from PySide6.QtWidgets import QLabel, QMenuBar, QStatusBar, QComboBox, QMainWindow, QPushButton
+from PySide6.QtWidgets import QCheckBox, QSpinBox, QSlider, QTabWidget, QWidget, QTreeWidget, QTreeWidgetItem
+from PySide6.QtWidgets import QToolButton, QDoubleSpinBox
 
 
-from obj import BVHMotion, Skeleton, Joint
-from parser import BVHParser
+from obj import *
+from customparser import BVHParser
 from window import BVHOpenGLWidget
 from render import *
 from np import *
@@ -42,10 +44,60 @@ class MotionViewerWindow(QMainWindow):
         self.menubar: QMenuBar
         self.statusbar: QStatusBar
 
+        #Particle
+        self.checkBox_particle_enable: QCheckBox
+        self.checkBox_particle_step: QCheckBox
+
+        #Particle: delete
+        self.comboBox_particle_delete: QComboBox
+        self.toolButton_particle_delete: QToolButton
+
+        #Particle: Simple
+        self.doubleSpinBox_particle_simple_mass: QDoubleSpinBox
+        self.doubleSpinBox_particle_simple_x: QDoubleSpinBox
+        self.doubleSpinBox_particle_simple_y: QDoubleSpinBox
+        self.doubleSpinBox_particle_simple_z: QDoubleSpinBox
+        self.checkBox_particle_simple_collision: QCheckBox
+        self.checkBox_particle_simple_pinned: QCheckBox
+        self.comboBox_particle_simple_write: QComboBox
+        self.toolButton_particle_simple_write: QToolButton
+
+        #Particle: Cube
+        self.doubleSpinBox_particle_cube_mass: QDoubleSpinBox
+        self.doubleSpinBox_particle_cube_size: QDoubleSpinBox
+        self.doubleSpinBox_particle_cube_x: QDoubleSpinBox
+        self.doubleSpinBox_particle_cube_y: QDoubleSpinBox
+        self.doubleSpinBox_particle_cube_z: QDoubleSpinBox
+        self.checkBox_particle_cube_collision: QCheckBox
+        self.comboBox_particle_cube_write: QComboBox
+        self.toolButton_particle_cube_write: QToolButton
+
+        #Collider: Plane
+        self.doubleSpinBox_particle_plane_norm_x: QDoubleSpinBox
+        self.doubleSpinBox_particle_plane_norm_y: QDoubleSpinBox
+        self.doubleSpinBox_particle_plane_norm_z: QDoubleSpinBox
+        self.doubleSpinBox_particle_plane_passpoint_x: QDoubleSpinBox
+        self.doubleSpinBox_particle_plane_passpoint_y: QDoubleSpinBox
+        self.doubleSpinBox_particle_plane_passpoint_z: QDoubleSpinBox
+        self.doubleSpinBox_particle_plane_k: QDoubleSpinBox
+        self.doubleSpinBox_particle_plane_myu: QDoubleSpinBox
+        self.checkBox_particle_plane_collision: QCheckBox
+        self.checkBox_particle_plane_contact: QCheckBox
+        self.comboBox_particle_plane_write: QComboBox
+        self.toolButton_particle_plane_write: QToolButton
+
+        #Particle: Spring
+        self.comboBox_particle_spring_p1: QComboBox
+        self.comboBox_particle_spring_p2: QComboBox
+        self.doubleSpinBox_particle_spring_length: QDoubleSpinBox
+        self.doubleSpinBox_particle_spring_ks: QDoubleSpinBox
+        self.doubleSpinBox_particle_spring_kd: QDoubleSpinBox
+        self.comboBox_particle_spring_write: QComboBox
+        self.toolButton_particle_spring_write: QToolButton
+        
+
         # parse objects
         self.bvh_parser: BVHParser = BVHParser()
-        # self.parsed_skeleton: Optional[Skeleton] = None
-        # self.parsed_bvh_motion: Optional[BVHMotion] = None
 
         self.frame_time: int = 8
         self.max_frame: int = 0
@@ -55,8 +107,6 @@ class MotionViewerWindow(QMainWindow):
             self.openGLWidget.frame += 1
             if self.max_frame < self.openGLWidget.frame:
                 self.openGLWidget.frame = 0
-            # self.slider_frame.setSliderPosition(self.openGLWidget.frame)
-            # self.spinBox_frame.setValue(self.openGLWidget.frame)
 
     def _update_glwidget(self):
         self.openGLWidget.update()
@@ -140,9 +190,31 @@ class MotionViewerWindow(QMainWindow):
     def _ik_enable(self):
         self.gl_renderer.ik_enabled = self.checkBox_ik_enable.isChecked()
         print("ik enabled:", self.gl_renderer.ik_enabled)
-    
+
+    def _particle_enable(self):
+        self.gl_renderer.particle_enabled = self.checkBox_particle_enable.isChecked()
+
+    def _particle_step(self):
+        self.gl_renderer.particle_semi_implicit_enabled = self.checkBox_particle_step.isChecked()
+
+    def _particle_simple_write(self):
+        pass
+
+    def _particle_cube_write(self):
+        pass
+
+    def _particle_plane_write(self):
+        pass
+
+    def _particle_spring_write(self):
+        pass
+
+    def _particle_delete(self):
+        pass
+
     def init_ui(self):
         self.gl_renderer: BVH_GLRenderer = BVH_GLRenderer()
+        self.particle_system: Particle_System = self.gl_renderer.particle_system
 
         self.opengl_update_timer = QTimer(self)
         self.opengl_update_timer.timeout.connect(self._update_glwidget)
@@ -172,6 +244,15 @@ class MotionViewerWindow(QMainWindow):
         self.spinBox_ik_target_frame.textChanged.connect(self._ik_target_frame)
         self.checkBox_ik_enable.toggled.connect(self._ik_enable)
 
+        self.checkBox_particle_enable.toggled.connect(self._particle_enable)
+        self.checkBox_particle_step.toggled.connect(self._particle_step)
+
+        self.toolButton_particle_delete.clicked.connect(self._particle_delete)
+        self.toolButton_particle_simple_write.clicked.connect(self._particle_simple_write)
+        self.toolButton_particle_cube_write.clicked.connect(self._particle_cube_write)
+        self.toolButton_particle_plane_write.clicked.connect(self._particle_plane_write)
+        self.toolButton_particle_spring_write.clicked.connect(self._particle_spring_write)
+        
     
     def keyPressEvent(self, event: PySide6.QtGui.QKeyEvent) -> None:
         key = event.key()

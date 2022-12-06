@@ -4,7 +4,7 @@ import os
 from typing import Dict, List, Optional, Tuple
 from typing_extensions import override
 
-from parser import Parser
+from customparser import Parser
 from obj import Joint, Skeleton, BVHPosture, BVHMotion
 import motion_formats.BVH_formats as bvh_formats
 

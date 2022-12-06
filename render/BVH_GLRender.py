@@ -21,33 +21,6 @@ class BVH_GLRenderer(GLRenderer):
         self.ik: Optional[BVH_IK] = BVH_IK(None)
         self.ik_frame_interval = 30
 
-        self.particle_system: Particle_System = Particle_System()
-        self.particle_update_interval: float = 20
-
-        # naive particle
-        self.one_particle = Particle(mass=1, position=np.array([0.01,1,0,1], dtype=np.float32))
-        self.two_particle = Particle(position=np.array([0,0.5,0,1], dtype=np.float32))
-        
-        self.particle_system.append_particle(self.one_particle)
-        self.particle_system.append_particle(self.two_particle)
-        self.particle_system.append_force(Gravity_Force(self.one_particle, self.particle_system))
-        self.particle_system.append_force(Damped_Spring_Force(self.one_particle, self.particle_system,
-                    self.two_particle, 50.0, 0, 0.5))
-        self.two_particle.pin()
-        self.one_particle.enable_collision()
-        
-        self.particle_system.append_collider(Infinite_Plane_Collider(normal_vector=np.array([0,1,0,0], dtype=np.float32),
-                                                                     passing_point=np.array([0,0,0,1], dtype=np.float32),
-                                                                     k=0.6,
-                                                                     myu=0.1))
-        
-        
-        # self.particle_system.append_collider(Infinite_Plane_Collider(normal_vector=np.array([-1,1,0,0], dtype=np.float32),
-        #                                                              passing_point=np.array([0,-0.1,0,1], dtype=np.float32),
-        #                                                              k=1))
-
-    def update_particle_dynamics(self):
-        self.particle_system.semi_implicit_euler_step(self.particle_update_interval)
 
     def set_object(self, skeleton, motion):
         super().set_object(skeleton, motion)
@@ -65,39 +38,12 @@ class BVH_GLRenderer(GLRenderer):
 
     @override
     def gl_render(self, frame: Optional[int]) -> None:
-        #naive update particle system
-        # self.two_particle.position = np.array([0,2,0,1], dtype=np.float32)
-        self.update_particle_dynamics()
 
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT|gl.GL_DEPTH_BUFFER_BIT)
         gl.glEnable(gl.GL_DEPTH_TEST)
         gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE)
         self.gl_camera.lookAt()
-
-        # naive draw particle
-        gl.glPointSize(10)
-
-        gl.glColor3ub(255, 0, 0)
-        gl.glBegin(gl.GL_POINTS)
-        gl.glVertex3f(self.one_particle.position[0], self.one_particle.position[1], self.one_particle.position[2])
-        gl.glEnd()
-
-        gl.glColor3ub(0, 0, 255)
-        gl.glBegin(gl.GL_POINTS)
-        gl.glVertex3f(self.two_particle.position[0], self.two_particle.position[1], self.two_particle.position[2])
-        gl.glEnd()
-        gl.glPointSize(1)
-
-
-
-        gl.glColor3ub(110, 110, 110)
-        gl.glBegin(gl.GL_LINES)
-        gl.glVertex3f(self.two_particle.position[0], self.two_particle.position[1], self.two_particle.position[2])
-        gl.glVertex3f(self.one_particle.position[0], self.one_particle.position[1], self.one_particle.position[2])
-        gl.glEnd()
-        gl.glColor3ub(255, 255, 255)
-
 
 
         if self.render_abs_axis:

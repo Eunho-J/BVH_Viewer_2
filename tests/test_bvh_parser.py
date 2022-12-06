@@ -9,7 +9,7 @@ sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.par
 from np import *
 from obj import Joint, Skeleton, BVHPosture
 import motion_formats.BVH_formats as bvh
-from parser import BVHParser
+from customparser import BVHParser
 
 
 @pytest.fixture

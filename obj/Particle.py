@@ -148,8 +148,11 @@ class Particle_System:
         for i, particle in enumerate(self.particles):
             if particle.pinned:
                 continue
-            dx = particle.velocity * dt
+            for collider in self.colliders:
+                if collider.check_contact(particle, dt):
+                    collider.apply_contact(particle, dt)
             dv = particle.force * dt / particle.mass
+            dx = particle.velocity * dt
             #update position
             particle.position += dx
             #update velocity
@@ -292,7 +295,7 @@ class Infinite_Plane_Collider(Collider):
         decomposed_movement = utils.decompose_by(particle.position - collision_point, self.norm)
         decomposed_velocity = utils.decompose_by(particle.velocity, self.norm)
     
-        # particle.position_prev = collision_point
+        particle.position_prev = collision_point - self.eps * decomposed_movement
         
         particle.position -= (1 + self.k) * decomposed_movement
         particle.velocity -= (1 + self.k) * decomposed_velocity
@@ -321,31 +324,42 @@ class Infinite_Plane_Collider(Collider):
         up_direction = utils.decompose_by(passpoint_to_particle, self.norm)
 
         parallel_force = particle.force - down_force
-        friction_force: Optional[np.ndarray] = None
 
         down_velocity = utils.decompose_by(particle.velocity, self.norm)
         parallel_velocity = particle.velocity - down_velocity
 
         if np.dot(down_force, up_direction) < 0: 
             # means down_force is actually down directing
+            friction_for_velocity = np.array([0,0,0,0], dtype=np.float32)
             particle.force = parallel_force.copy()
             if np.linalg.norm(parallel_velocity) > 0:
-                friction_force = self.myu * np.linalg.norm(down_force) * utils.numpy_get_unit(parallel_velocity)
-            else:
-                friction_force = np.array([0,0,0,0], dtype=np.float32)
+                friction_for_velocity = dt * self.myu * np.linalg.norm(down_force) * utils.numpy_get_unit(parallel_velocity)
 
-        maximum_friction_force = particle.mass * parallel_velocity / dt
-        if friction_force is not None:
-            if np.linalg.norm(friction_force) > np.linalg.norm(maximum_friction_force):
-                friction_force = maximum_friction_force
-            particle.force -= friction_force
+            maximum_friction_force = particle.mass * parallel_velocity / dt
+            
+            if np.linalg.norm(friction_for_velocity) > np.linalg.norm(maximum_friction_force):
+                friction_for_velocity = maximum_friction_force
+
+            friction_for_current_force = np.array([0,0,0,0], dtype=np.float32)
+            if np.linalg.norm(particle.force) > 0:
+                friction_for_current_force = dt * self.myu * np.linalg.norm(down_force) * utils.numpy_get_unit(particle.force)
+            
+            if np.linalg.norm(friction_for_current_force) > np.linalg.norm(particle.force):
+                particle.force -= particle.force
+            else:
+                particle.force -= friction_for_current_force
+
+            particle.force -= friction_for_velocity
+
+        if np.linalg.norm(parallel_velocity) < self.eps * self.myu / dt:
+            particle.velocity -= particle.velocity
         
     @override
     def check_contact(self, particle: Particle, dt:float) -> bool:
         distance = np.abs(np.dot(self.passpoint - particle.position, self.norm))
         velocity_toward_plane = np.linalg.norm(utils.decompose_by(particle.velocity, self.norm))
         if distance < self.eps:
-            if velocity_toward_plane * dt < self.eps:
+            if velocity_toward_plane < self.eps / dt:
                 return True
 
         return False

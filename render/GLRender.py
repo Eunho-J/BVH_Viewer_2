@@ -43,6 +43,15 @@ class GLRenderer:
         self.skeleton: Optional[Skeleton] = None
         self.motion = None
 
+        self.particle_enabled: bool = False
+        self.particle_semi_implicit_enabled: bool = True
+
+        self.particle_system: Particle_System = Particle_System()
+        self.particle_update_interval: float = 20
+
+    def update_particle_dynamics(self):
+        self.particle_system.semi_implicit_euler_step(self.particle_update_interval)
+
     def set_object(self, skeleton, motion):
         self.skeleton = skeleton
         self.motion = motion
