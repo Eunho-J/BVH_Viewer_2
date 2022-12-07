@@ -224,7 +224,6 @@ class MotionViewerWindow(QMainWindow):
         # pinned = self.checkBox_particle_cube_pinned.isChecked()
         
         mass_per_particle = mass / 8.0
-        print("massperparticle", mass_per_particle)
         
         if cube is None:
             cube = []
@@ -332,7 +331,6 @@ class MotionViewerWindow(QMainWindow):
         self.comboBox_particle_delete.addItem(name, target)
     
     def _spring_add(self, p1, p2, ks, kd, r=None, parent=None):
-        print(ks, kd)
         spring = Damped_Spring_Force(p1, self.particle_system, p2, ks, kd, r)
         name = ''
         spring_id = len(self.springs)
