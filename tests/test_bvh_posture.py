@@ -53,23 +53,23 @@ def test_posture_items(posture):
 
         bvh_channel, input_float = list_of_tuples[0]
 
-        x = np.array([1,1,1,1], dtype=np.float32)
+        x = np.array([1,1,1,1], dtype=np.float64)
         affine = bvh_channel.get_affine_matrix(input_float)
         if list_channel[idx] == 'xrotation':
-            np.testing.assert_array_almost_equal(x@affine, np.array([1,-1,1,1],dtype=np.float32))
+            np.testing.assert_array_almost_equal(x@affine, np.array([1,-1,1,1],dtype=np.float64))
             assert bvh_channel.name == 'xrotation'
         if list_channel[idx] == 'yrotation':
-            np.testing.assert_array_almost_equal(x@affine, np.array([1,1,-1,1],dtype=np.float32))
+            np.testing.assert_array_almost_equal(x@affine, np.array([1,1,-1,1],dtype=np.float64))
             assert bvh_channel.name == 'yrotation'
         if list_channel[idx] == 'zrotation':
-            np.testing.assert_array_almost_equal(x@affine, np.array([-1,1,1,1],dtype=np.float32))
+            np.testing.assert_array_almost_equal(x@affine, np.array([-1,1,1,1],dtype=np.float64))
             assert bvh_channel.name == 'zrotation'
         if list_channel[idx] == 'xposition':
-            np.testing.assert_array_almost_equal(x@affine, np.array([1+idx,1,1,1],dtype=np.float32))
+            np.testing.assert_array_almost_equal(x@affine, np.array([1+idx,1,1,1],dtype=np.float64))
             assert bvh_channel.name == 'xposition'
         if list_channel[idx] == 'yposition':
-            np.testing.assert_array_almost_equal(x@affine, np.array([1,1+idx,1,1],dtype=np.float32))
+            np.testing.assert_array_almost_equal(x@affine, np.array([1,1+idx,1,1],dtype=np.float64))
             assert bvh_channel.name == 'yposition'
         if list_channel[idx] == 'zposition':
-            np.testing.assert_array_almost_equal(x@affine, np.array([1,1,1+idx,1],dtype=np.float32))
+            np.testing.assert_array_almost_equal(x@affine, np.array([1,1,1+idx,1],dtype=np.float64))
             assert bvh_channel.name == 'zposition'

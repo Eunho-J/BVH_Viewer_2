@@ -71,6 +71,8 @@ class MotionViewerWindow(QMainWindow):
         self.checkBox_particle_cube_collision: QCheckBox
         self.comboBox_particle_cube_write: QComboBox
         self.toolButton_particle_cube_write: QToolButton
+        self.doubleSpinBox_particle_cube_kd: QDoubleSpinBox
+        self.doubleSpinBox_particle_cube_ks: QDoubleSpinBox
 
         #Collider: Plane
         self.doubleSpinBox_particle_plane_norm_x: QDoubleSpinBox
@@ -95,7 +97,10 @@ class MotionViewerWindow(QMainWindow):
         self.comboBox_particle_spring_write: QComboBox
         self.toolButton_particle_spring_write: QToolButton
         
-
+        self.particles: List[Particle] = []
+        self.cubes: List[List[Particle]] = []
+        self.springs: List[Damped_Spring_Force] = []
+        self.planes: List[Infinite_Plane_Collider] = []
         # parse objects
         self.bvh_parser: BVHParser = BVHParser()
 
@@ -191,26 +196,171 @@ class MotionViewerWindow(QMainWindow):
         self.gl_renderer.ik_enabled = self.checkBox_ik_enable.isChecked()
         print("ik enabled:", self.gl_renderer.ik_enabled)
 
-    def _particle_enable(self):
-        self.gl_renderer.particle_enabled = self.checkBox_particle_enable.isChecked()
-
-    def _particle_step(self):
-        self.gl_renderer.particle_semi_implicit_enabled = self.checkBox_particle_step.isChecked()
-
     def _particle_simple_write(self):
-        pass
-
+        particle: Optional[Particle] = self.comboBox_particle_simple_write.currentData()
+        mass: float = self.doubleSpinBox_particle_simple_mass.value()
+        pos_x: float = self.doubleSpinBox_particle_simple_x.value()
+        pos_y: float = self.doubleSpinBox_particle_simple_y.value()
+        pos_z: float = self.doubleSpinBox_particle_simple_z.value()
+        position: np.ndarray = np.array([pos_x, pos_y, pos_z, 1], dtype=np.float64)
+        collision = self.checkBox_particle_simple_collision.isChecked()
+        pinned = self.checkBox_particle_simple_pinned.isChecked()
+        if particle is None:
+            self._particle_add(Particle(mass, position, collision, pinned))
+        else:
+            particle.overwrite(mass, position, collision, pinned)
+        
     def _particle_cube_write(self):
-        pass
+        cube: Optional[List[Particle]] = self.comboBox_particle_cube_write.currentData()
+        mass: float = self.doubleSpinBox_particle_cube_mass.value()
+        size: float = self.doubleSpinBox_particle_cube_size.value()
+        pos_x: float = self.doubleSpinBox_particle_cube_x.value()
+        pos_y: float = self.doubleSpinBox_particle_cube_y.value()
+        pos_z: float = self.doubleSpinBox_particle_cube_z.value()
+        
+        ks = self.doubleSpinBox_particle_cube_ks.value()
+        kd = self.doubleSpinBox_particle_cube_kd.value()
+        collision = self.checkBox_particle_cube_collision.isChecked()
+        # pinned = self.checkBox_particle_cube_pinned.isChecked()
+        
+        mass_per_particle = mass / 8.0
+        print("massperparticle", mass_per_particle)
+        
+        if cube is None:
+            cube = []
+            for i in range(8):
+                position = np.array([pos_x + (i//4 - 0.5) * size,
+                                 pos_y + (i%4//2 - 0.5) * size,
+                                 pos_z + (i%2 - 0.5) * size,
+                                 1], dtype=np.float64)
+                self._particle_add(Particle(mass_per_particle, position, collision, False), cube)
+            for i in range(7):
+                for j in range(i+1,8):
+                    self._spring_add(cube[i], cube[j], ks, kd, None, cube)
+            name = f"cube {len(self.cubes)}"
+            self.cubes.append(cube)
+            self._cube_comboBox_add_item(name, cube)
+        else:
+            # update existing
+            pass
+                
 
     def _particle_plane_write(self):
-        pass
+        plane: Optional[Infinite_Plane_Collider] = self.comboBox_particle_plane_write.currentData()
+        
+        norm_x = self.doubleSpinBox_particle_plane_norm_x.value()
+        norm_y = self.doubleSpinBox_particle_plane_norm_y.value()
+        norm_z = self.doubleSpinBox_particle_plane_norm_z.value()
+        norm = np.array([norm_x, norm_y, norm_z, 0], np.float64)
+        
+        passpoint_x = self.doubleSpinBox_particle_plane_passpoint_x.value()
+        passpoint_y = self.doubleSpinBox_particle_plane_passpoint_y.value()
+        passpoint_z = self.doubleSpinBox_particle_plane_passpoint_z.value()
+        passpoint = np.array([passpoint_x, passpoint_y, passpoint_z, 1], dtype=np.float64)
+        
+        k = self.doubleSpinBox_particle_plane_k.value()
+        myu = self.doubleSpinBox_particle_plane_myu.value()
+        
+        collision = self.checkBox_particle_plane_collision.isChecked()
+        contact = self.checkBox_particle_plane_contact.isChecked()
+        
+        if plane is None:
+            self._plane_add(norm, passpoint, k, myu, collision, contact)
+            pass
+        else:
+            # update existing
+            pass
+        
 
     def _particle_spring_write(self):
-        pass
-
+        spring = self.comboBox_particle_spring_write.currentData()
+        p1 = self.comboBox_particle_spring_p1.currentData()
+        p2 = self.comboBox_particle_spring_p2.currentData()
+        r = self.doubleSpinBox_particle_spring_length.value()
+        if r == 0.0:
+            # set r to initial distance (defalut value)
+            r = None
+        ks = self.doubleSpinBox_particle_spring_ks.value()
+        kd = self.doubleSpinBox_particle_spring_kd.value()
+        
+        if spring is None:
+            self._spring_add(p1, p2, ks, kd, r)
+        else:
+            # update existing
+            pass
+        
     def _particle_delete(self):
         pass
+    
+    def _particle_add(self, particle, parent:Optional[List[Particle]]=None):
+        name: str
+        particle_id = len(self.particles)
+        if parent is None:
+            self.particles.append(particle)
+            name = f"particle {particle_id}"
+        else:
+            cube_id = len(self.cubes)
+            parent.append(particle)
+            name = f"cube {cube_id} - particle {particle_id}"
+        
+        self.particle_system.append_particle(particle)
+        self._particle_comboBox_add_item(name, particle)
+            
+    def _particle_comboBox_add_item(self, name, particle):
+        self.comboBox_particle_spring_p1.addItem(name, particle)
+        self.comboBox_particle_spring_p2.addItem(name, particle)
+        self.comboBox_particle_simple_write.addItem(name, particle)
+        if particle is not None:
+            self._particle_dynamics_add_delete(name, particle)
+        
+    def _cube_comboBox_add_item(self, name, cube):
+        self.comboBox_particle_cube_write.addItem(name, cube)
+        if cube is not None:
+            self._particle_dynamics_add_delete(name, cube)
+        
+    def _spring_comboBox_add_item(self, name, spring):
+        self.comboBox_particle_spring_write.addItem(name, spring)
+        if spring is not None:
+            self._particle_dynamics_add_delete(name, spring)
+        
+    def _plane_comboBox_add_item(self, name, plane):
+        self.comboBox_particle_plane_write.addItem(name, plane)
+        if plane is not None:
+            self._particle_dynamics_add_delete(name, plane)
+        
+    def _particle_dynamics_add_delete(self, name, target):
+        self.comboBox_particle_delete.addItem(name, target)
+    
+    def _spring_add(self, p1, p2, ks, kd, r=None, parent=None):
+        print(ks, kd)
+        spring = Damped_Spring_Force(p1, self.particle_system, p2, ks, kd, r)
+        name = ''
+        spring_id = len(self.springs)
+        if parent is None:
+            name = f"spring {spring_id}"
+        else:
+            cube_id = len(self.cubes)
+            name = f"cube {cube_id} - spring {spring_id}"
+            
+        self.springs.append(spring)
+        self.particle_system.append_force(spring)
+        self._spring_comboBox_add_item(name, spring)
+    
+    def _plane_add(self, norm, passpoint, k, myu, collision, contact):
+        plane = Infinite_Plane_Collider(norm, passpoint, k, myu, collision, contact)
+        plane_id = len(self.planes)
+        name = f"plane {plane_id}"
+        
+        self._plane_comboBox_add_item(name, plane)
+        self.planes.append(plane)
+        self.particle_system.append_collider(plane)
+        
+    def _update_particle_dynamics(self):
+        if self.checkBox_particle_enable.isChecked():
+            if self.checkBox_particle_step.isChecked():
+                self.particle_system.semi_implicit_euler_step(self.particle_update_dt)
+            else:
+                self.particle_system.euler_step(self.particle_update_dt)
 
     def init_ui(self):
         self.gl_renderer: BVH_GLRenderer = BVH_GLRenderer()
@@ -220,6 +370,12 @@ class MotionViewerWindow(QMainWindow):
         self.opengl_update_timer.timeout.connect(self._update_glwidget)
         self.opengl_update_timer.setInterval(20)
         self.opengl_update_timer.start()
+        
+        self.particle_update_timer = QTimer(self)
+        self.particle_update_dt = 8
+        self.particle_update_timer.timeout.connect(self._update_particle_dynamics)
+        self.particle_update_timer.setInterval(self.particle_update_dt)
+        self.particle_update_timer.start()
 
         self.camera: GLCamera = self.gl_renderer.gl_camera
         
@@ -244,15 +400,16 @@ class MotionViewerWindow(QMainWindow):
         self.spinBox_ik_target_frame.textChanged.connect(self._ik_target_frame)
         self.checkBox_ik_enable.toggled.connect(self._ik_enable)
 
-        self.checkBox_particle_enable.toggled.connect(self._particle_enable)
-        self.checkBox_particle_step.toggled.connect(self._particle_step)
-
         self.toolButton_particle_delete.clicked.connect(self._particle_delete)
         self.toolButton_particle_simple_write.clicked.connect(self._particle_simple_write)
         self.toolButton_particle_cube_write.clicked.connect(self._particle_cube_write)
         self.toolButton_particle_plane_write.clicked.connect(self._particle_plane_write)
         self.toolButton_particle_spring_write.clicked.connect(self._particle_spring_write)
         
+        self._particle_comboBox_add_item("None", None)
+        self._cube_comboBox_add_item("None", None)
+        self._spring_comboBox_add_item("None", None)
+        self._plane_comboBox_add_item("None", None)
     
     def keyPressEvent(self, event: PySide6.QtGui.QKeyEvent) -> None:
         key = event.key()
@@ -263,17 +420,17 @@ class MotionViewerWindow(QMainWindow):
         elif key == Qt.Key.Key_V:
             self.checkBox_view_ortho.toggle()
         elif key == Qt.Key.Key_W:
-            self.gl_renderer.move_desired_position(np.array([0,0.01,0,0], dtype=np.float32))
+            self.gl_renderer.move_desired_position(np.array([0,0.01,0,0], dtype=np.float64))
         elif key == Qt.Key.Key_S:
-            self.gl_renderer.move_desired_position(np.array([0,-0.01,0,0], dtype=np.float32))
+            self.gl_renderer.move_desired_position(np.array([0,-0.01,0,0], dtype=np.float64))
         elif key == Qt.Key.Key_Q:
-            self.gl_renderer.move_desired_position(np.array([0.01,0,0,0], dtype=np.float32))
+            self.gl_renderer.move_desired_position(np.array([0.01,0,0,0], dtype=np.float64))
         elif key == Qt.Key.Key_A:
-            self.gl_renderer.move_desired_position(np.array([-0.01,0,0,0], dtype=np.float32))
+            self.gl_renderer.move_desired_position(np.array([-0.01,0,0,0], dtype=np.float64))
         elif key == Qt.Key.Key_E:
-            self.gl_renderer.move_desired_position(np.array([0,0,0.01,0], dtype=np.float32))
+            self.gl_renderer.move_desired_position(np.array([0,0,0.01,0], dtype=np.float64))
         elif key == Qt.Key.Key_D:
-            self.gl_renderer.move_desired_position(np.array([0,0,-0.01,0], dtype=np.float32))
+            self.gl_renderer.move_desired_position(np.array([0,0,-0.01,0], dtype=np.float64))
         elif key == Qt.Key.Key_R:
             self.gl_renderer.reset_desired_position()
 
@@ -316,7 +473,6 @@ class MotionViewerWindow(QMainWindow):
             tree_item.addChild(self.get_skeleton_tree_item_recursive(child, tree_item))
         tree_item.setExpanded(True)
         return tree_item
-        
         
         
 

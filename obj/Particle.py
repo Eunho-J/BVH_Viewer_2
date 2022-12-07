@@ -10,14 +10,15 @@ import utils
 class Particle:
     def __init__(self, 
                  mass:float = 1.0, 
-                 position: np.ndarray = np.array([0,0,0,0], dtype=np.float32),
-                 collision_enabled: bool = False
+                 position: np.ndarray = np.array([0,0,0,0], dtype=np.float64),
+                 collision_enabled: bool = False,
+                 pinned: bool = False
                  ) -> None:
         self.mass: float = mass
         self.position: np.ndarray = position
-        self.velocity: np.ndarray = np.array([0,0,0,0], dtype=np.float32)
-        self.force: np.ndarray = np.array([0,0,0,0], dtype=np.float32)
-        self.pinned: bool = False
+        self.velocity: np.ndarray = np.array([0,0,0,0], dtype=np.float64)
+        self.force: np.ndarray = np.array([0,0,0,0], dtype=np.float64)
+        self.pinned: bool = pinned
         self.collision_enabled: bool = collision_enabled
         
         self.position_prev: np.ndarray = position
@@ -35,7 +36,17 @@ class Particle:
         self.collision_enabled = False
 
     def clear_force(self):
-        self.force = np.zeros_like(self.force, dtype=np.float32)
+        self.force = np.zeros_like(self.force, dtype=np.float64)
+        
+    def overwrite(self, mass, position, collision, pinned):
+        self.mass = mass
+        self.position = position
+        self.position_prev = position.copy()
+        self.pinned = pinned
+        self.collision_enabled = collision
+        
+        self.velocity = np.zeros_like(self.velocity)
+        self.force = np.zeros_like(self.force)
 
 
 class Particle_System:
@@ -44,6 +55,8 @@ class Particle_System:
         self.clock: float = 0.0
         self.forces: List[Force] = []
         self.colliders: List[Collider] = []
+        
+        self.append_force(Gravity_Force(None, self))
 
     def append_particle(self, particle:Particle) -> None:
         self.particles.append(particle)
@@ -116,19 +129,16 @@ class Particle_System:
         for i, particle in enumerate(self.particles):
             if particle.pinned:
                 continue
-
-            dx = particle.velocity * dt
-
+            
             for collider in self.colliders:
                 if collider.check_contact(particle, dt):
                     collider.apply_contact(particle, dt)
 
-            dv = particle.force * dt / particle.mass
             #update position
             particle.position_prev = particle.position.copy()
-            particle.position += dx
+            particle.position += particle.velocity * dt
             #update velocity
-            particle.velocity += dv
+            particle.velocity += particle.force * dt / particle.mass
         
         self._compute_collisions()
         self.clock += dt
@@ -138,11 +148,6 @@ class Particle_System:
         
         self._clear_forces()
         self._compute_forces()
-
-
-        #get initial state
-        v_init_list = [ particle.velocity.copy() for particle in self.particles ]
-        x_init_list = [ particle.position.copy() for particle in self.particles ]
         
         # update state
         for i, particle in enumerate(self.particles):
@@ -151,37 +156,10 @@ class Particle_System:
             for collider in self.colliders:
                 if collider.check_contact(particle, dt):
                     collider.apply_contact(particle, dt)
-            dv = particle.force * dt / particle.mass
-            dx = particle.velocity * dt
-            #update position
-            particle.position += dx
-            #update velocity
-            particle.velocity += dv
-        
-        self._clear_forces()
-        self._compute_forces()
-
-        # reset state to initial and update
-        for i, particle in enumerate(self.particles):
-            if particle.pinned:
-                continue
-
-            dx = particle.velocity * dt
-
-            particle.position = x_init_list[i]
-            particle.velocity = v_init_list[i]
-
-            for collider in self.colliders:
-                if collider.check_contact(particle, dt):
-                    collider.apply_contact(particle, dt)
-
-            dv = particle.force * dt / particle.mass
-
-            #update position
+                    
+            particle.velocity += particle.force * dt / particle.mass
             particle.position_prev = particle.position.copy()
-            particle.position += dx
-            #update velocity
-            particle.velocity += dv
+            particle.position += particle.velocity * dt
         
         self._compute_collisions()
         self.clock += dt
@@ -217,13 +195,13 @@ class Drag_Force(Force):
 
 class Damped_Spring_Force(Force):
     def __init__(self, p: Particle, system: Particle_System, p2: Particle,
-                    ks: float, kd: float, r:float = 0) -> None:
+                    ks: float, kd: float, r: Optional[float] = None) -> None:
         super().__init__(ForceType.damped_spring, p, system)
         self.p2: Particle = p2
         self.ks: float = ks
         self.kd: float = kd
         self.r: float = r
-        if self.r <= 0:
+        if self.r is None:
             self.r = utils.distance_of(p.position, p2.position)
 
     @override
@@ -233,8 +211,9 @@ class Damped_Spring_Force(Force):
         dx = self.p2.position - self.p.position
         dx_unit = utils.numpy_get_unit(dx)
         
-        f = self.ks * (current_distance - self.r) * dx_unit + \
-            self.kd * utils.decompose_by(dv, dx)
+        dv_size = np.linalg.norm(utils.decompose_by(dv,dx))
+        
+        f = self.ks * (current_distance - self.r) * dx_unit + self.kd * utils.decompose_by(dv, dx)
 
         self.p.force += f
         self.p2.force -= f
@@ -243,21 +222,25 @@ class Gravity_Force(Force):
     def __init__(self, p: Particle, system: Particle_System, g: float = 9.8) -> None:
         super().__init__(ForceType.gravity, p, system)
         self.g: float = g
-        self.direction_unit = np.array([0,-1,0,0], dtype=np.float32)
+        self.direction_unit = np.array([0,-1,0,0], dtype=np.float64)
 
     @override
     def apply(self):
-        self.p.force += self.p.mass * self.g * self.direction_unit
+        for particle in self.system.particles:
+            particle.force += particle.mass * self.g * self.direction_unit
+        # self.p.force += self.p.mass * self.g * self.direction_unit
 
 
 
 #-----------------Collider-------------------
 
 class Collider:
-    def __init__(self, k: float = 1.0, myu: float = 0.0) -> None:
+    def __init__(self, k: float = 1.0, myu: float = 0.0, collision_enabled: bool = True, contact_enabled: bool = True) -> None:
         self.k: float = k
         self.eps: float = 0.002
         self.myu: float = myu
+        self.collision_enabled = collision_enabled
+        self.contact_enabled = contact_enabled
     
     @abstractmethod
     def apply_collision(self, particle: Particle, collision_point: np.ndarray):
@@ -278,12 +261,14 @@ class Collider:
     
 class Infinite_Plane_Collider(Collider):
     def __init__(self, 
-                normal_vector: np.ndarray = np.array([0,1,0,0], dtype=np.float32),
-                passing_point: np.ndarray = np.array([0,0,0,1], dtype=np.float32),
+                normal_vector: np.ndarray = np.array([0,1,0,0], dtype=np.float64),
+                passing_point: np.ndarray = np.array([0,0,0,1], dtype=np.float64),
                 k: float = 1.0,
-                myu: float = 0.0
+                myu: float = 0.0,
+                collision_enabled: bool = True,
+                contact_enabled: bool = True
                 ) -> None:
-        super().__init__(k, myu)
+        super().__init__(k, myu, collision_enabled, contact_enabled)
         self.norm: np.ndarray = utils.numpy_get_unit(normal_vector)
         self.passpoint: np.ndarray = passing_point
         
@@ -330,7 +315,7 @@ class Infinite_Plane_Collider(Collider):
 
         if np.dot(down_force, up_direction) < 0: 
             # means down_force is actually down directing
-            friction_for_velocity = np.array([0,0,0,0], dtype=np.float32)
+            friction_for_velocity = np.array([0,0,0,0], dtype=np.float64)
             particle.force = parallel_force.copy()
             if np.linalg.norm(parallel_velocity) > 0:
                 friction_for_velocity = dt * self.myu * np.linalg.norm(down_force) * utils.numpy_get_unit(parallel_velocity)
@@ -340,7 +325,7 @@ class Infinite_Plane_Collider(Collider):
             if np.linalg.norm(friction_for_velocity) > np.linalg.norm(maximum_friction_force):
                 friction_for_velocity = maximum_friction_force
 
-            friction_for_current_force = np.array([0,0,0,0], dtype=np.float32)
+            friction_for_current_force = np.array([0,0,0,0], dtype=np.float64)
             if np.linalg.norm(particle.force) > 0:
                 friction_for_current_force = dt * self.myu * np.linalg.norm(down_force) * utils.numpy_get_unit(particle.force)
             

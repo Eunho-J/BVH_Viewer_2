@@ -712,14 +712,21 @@
                  </property>
                 </widget>
                </item>
-               <item row="3" column="0">
+               <item row="3" column="1">
+                <widget class="QLabel" name="label_particle_cube_position">
+                 <property name="text">
+                  <string>Position</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="4" column="0">
                 <widget class="QLabel" name="label_particle_simple_x">
                  <property name="text">
                   <string>X</string>
                  </property>
                 </widget>
                </item>
-               <item row="3" column="1">
+               <item row="4" column="1">
                 <widget class="QDoubleSpinBox" name="doubleSpinBox_particle_simple_x">
                  <property name="focusPolicy">
                   <enum>Qt::ClickFocus</enum>
@@ -753,14 +760,14 @@
                  </property>
                 </widget>
                </item>
-               <item row="4" column="0">
+               <item row="5" column="0">
                 <widget class="QLabel" name="label_particle_simple_y">
                  <property name="text">
                   <string>Y</string>
                  </property>
                 </widget>
                </item>
-               <item row="4" column="1">
+               <item row="5" column="1">
                 <widget class="QDoubleSpinBox" name="doubleSpinBox_particle_simple_y">
                  <property name="focusPolicy">
                   <enum>Qt::ClickFocus</enum>
@@ -794,14 +801,14 @@
                  </property>
                 </widget>
                </item>
-               <item row="5" column="0">
+               <item row="6" column="0">
                 <widget class="QLabel" name="label_particle_simple_z">
                  <property name="text">
                   <string>Z</string>
                  </property>
                 </widget>
                </item>
-               <item row="5" column="1">
+               <item row="6" column="1">
                 <widget class="QDoubleSpinBox" name="doubleSpinBox_particle_simple_z">
                  <property name="focusPolicy">
                   <enum>Qt::ClickFocus</enum>
@@ -835,14 +842,14 @@
                  </property>
                 </widget>
                </item>
-               <item row="6" column="0">
+               <item row="7" column="0">
                 <widget class="QLabel" name="label_particle_simple_write">
                  <property name="text">
                   <string>Write on</string>
                  </property>
                 </widget>
                </item>
-               <item row="6" column="1">
+               <item row="7" column="1">
                 <layout class="QHBoxLayout" name="horizontalLayout_particle_simple_write">
                  <property name="spacing">
                   <number>2</number>
@@ -969,14 +976,21 @@
                  </property>
                 </widget>
                </item>
-               <item row="3" column="0">
+               <item row="3" column="1">
+                <widget class="QLabel" name="label_particle_cube_position">
+                 <property name="text">
+                  <string>Position</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="4" column="0">
                 <widget class="QLabel" name="label_particle_cube_x">
                  <property name="text">
                   <string>X</string>
                  </property>
                 </widget>
                </item>
-               <item row="3" column="1">
+               <item row="4" column="1">
                 <widget class="QDoubleSpinBox" name="doubleSpinBox_particle_cube_x">
                  <property name="focusPolicy">
                   <enum>Qt::ClickFocus</enum>
@@ -1006,18 +1020,18 @@
                   <enum>QAbstractSpinBox::DefaultStepType</enum>
                  </property>
                  <property name="value">
-                  <double>1.000000000000000</double>
+                  <double>0.000000000000000</double>
                  </property>
                 </widget>
                </item>
-               <item row="4" column="0">
+               <item row="5" column="0">
                 <widget class="QLabel" name="label_particle_cube_y">
                  <property name="text">
                   <string>Y</string>
                  </property>
                 </widget>
                </item>
-               <item row="4" column="1">
+               <item row="5" column="1">
                 <widget class="QDoubleSpinBox" name="doubleSpinBox_particle_cube_y">
                  <property name="focusPolicy">
                   <enum>Qt::ClickFocus</enum>
@@ -1047,18 +1061,18 @@
                   <enum>QAbstractSpinBox::DefaultStepType</enum>
                  </property>
                  <property name="value">
-                  <double>1.000000000000000</double>
+                  <double>2.000000000000000</double>
                  </property>
                 </widget>
                </item>
-               <item row="5" column="0">
+               <item row="6" column="0">
                 <widget class="QLabel" name="label_particle_cube_z">
                  <property name="text">
                   <string>Z</string>
                  </property>
                 </widget>
                </item>
-               <item row="5" column="1">
+               <item row="6" column="1">
                 <widget class="QDoubleSpinBox" name="doubleSpinBox_particle_cube_z">
                  <property name="focusPolicy">
                   <enum>Qt::ClickFocus</enum>
@@ -1088,18 +1102,89 @@
                   <enum>QAbstractSpinBox::DefaultStepType</enum>
                  </property>
                  <property name="value">
-                  <double>1.000000000000000</double>
+                  <double>0.000000000000000</double>
                  </property>
                 </widget>
                </item>
-               <item row="6" column="0">
+               <item row="7" column="1">
+                <widget class="QLabel" name="label_particle_cube_coefficient">
+                 <property name="text">
+                  <string>Coefficients</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="8" column="0">
+                <widget class="QLabel" name="label_particle_cube_ks">
+                 <property name="text">
+                  <string>ks</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="8" column="1">
+                <widget class="QDoubleSpinBox" name="doubleSpinBox_particle_cube_ks">
+                 <property name="focusPolicy">
+                  <enum>Qt::ClickFocus</enum>
+                 </property>
+                 <property name="alignment">
+                  <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                 </property>
+                 <property name="buttonSymbols">
+                  <enum>QAbstractSpinBox::PlusMinus</enum>
+                 </property>
+                 <property name="accelerated">
+                  <bool>true</bool>
+                 </property>
+                 <property name="maximum">
+                  <double>10000.000000000000000</double>
+                 </property>
+                 <property name="singleStep">
+                  <double>0.050000000000000</double>
+                 </property>
+                 <property name="value">
+                  <double>100.000000000000000</double>
+                 </property>
+                </widget>
+               </item>
+               <item row="9" column="0">
+                <widget class="QLabel" name="label_particle_cube_kd">
+                 <property name="text">
+                  <string>kd</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="9" column="1">
+                <widget class="QDoubleSpinBox" name="doubleSpinBox_particle_cube_kd">
+                 <property name="focusPolicy">
+                  <enum>Qt::WheelFocus</enum>
+                 </property>
+                 <property name="alignment">
+                  <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                 </property>
+                 <property name="buttonSymbols">
+                  <enum>QAbstractSpinBox::PlusMinus</enum>
+                 </property>
+                 <property name="accelerated">
+                  <bool>true</bool>
+                 </property>
+                 <property name="maximum">
+                  <double>100.000000000000000</double>
+                 </property>
+                 <property name="singleStep">
+                  <double>0.050000000000000</double>
+                 </property>
+                 <property name="value">
+                  <double>0.500000000000000</double>
+                 </property>
+                </widget>
+               </item>
+               <item row="10" column="0">
                 <widget class="QLabel" name="label_particle_cube_write">
                  <property name="text">
                   <string>Write on</string>
                  </property>
                 </widget>
                </item>
-               <item row="6" column="1">
+               <item row="10" column="1">
                 <layout class="QHBoxLayout" name="horizontalLayout_particle_cube_write">
                  <property name="spacing">
                   <number>2</number>
@@ -1267,7 +1352,7 @@
                   <enum>QAbstractSpinBox::DefaultStepType</enum>
                  </property>
                  <property name="value">
-                  <double>1.000000000000000</double>
+                  <double>0.000000000000000</double>
                  </property>
                 </widget>
                </item>
@@ -1349,7 +1434,7 @@
                   <enum>QAbstractSpinBox::DefaultStepType</enum>
                  </property>
                  <property name="value">
-                  <double>1.000000000000000</double>
+                  <double>0.000000000000000</double>
                  </property>
                 </widget>
                </item>
@@ -1397,7 +1482,7 @@
                   <enum>QAbstractSpinBox::DefaultStepType</enum>
                  </property>
                  <property name="value">
-                  <double>1.000000000000000</double>
+                  <double>0.000000000000000</double>
                  </property>
                 </widget>
                </item>
@@ -1438,7 +1523,7 @@
                   <enum>QAbstractSpinBox::DefaultStepType</enum>
                  </property>
                  <property name="value">
-                  <double>1.000000000000000</double>
+                  <double>0.000000000000000</double>
                  </property>
                 </widget>
                </item>
@@ -1479,7 +1564,7 @@
                   <enum>QAbstractSpinBox::DefaultStepType</enum>
                  </property>
                  <property name="value">
-                  <double>1.000000000000000</double>
+                  <double>0.000000000000000</double>
                  </property>
                 </widget>
                </item>
@@ -1723,7 +1808,7 @@
                   <bool>true</bool>
                  </property>
                  <property name="maximum">
-                  <double>100.000000000000000</double>
+                  <double>10000.000000000000000</double>
                  </property>
                  <property name="singleStep">
                   <double>0.050000000000000</double>

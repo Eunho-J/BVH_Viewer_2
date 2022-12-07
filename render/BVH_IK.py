@@ -98,11 +98,11 @@ class BVH_IK:
         self.get_and_set_transformation_matrix_recursive(posture, ik_target_joint, self.ik_target_skeleton.root)
 
         if desired_position is None:
-            desired_position = self.target_joint_transform_matrix.T @ np.array([0,0,0,1], dtype=np.float32)
+            desired_position = self.target_joint_transform_matrix.T @ np.array([0,0,0,1], dtype=np.float64)
         
-        global_pos_a: np.ndarray = self.target_joint_grandparent_transform_matrix.T @ np.array([0,0,0,1], dtype=np.float32)
-        global_pos_b: np.ndarray = self.target_joint_parent_transform_matrix.T @ np.array([0,0,0,1], dtype=np.float32)
-        global_pos_c: np.ndarray = self.target_joint_transform_matrix.T @ np.array([0,0,0,1], dtype=np.float32)
+        global_pos_a: np.ndarray = self.target_joint_grandparent_transform_matrix.T @ np.array([0,0,0,1], dtype=np.float64)
+        global_pos_b: np.ndarray = self.target_joint_parent_transform_matrix.T @ np.array([0,0,0,1], dtype=np.float64)
+        global_pos_c: np.ndarray = self.target_joint_transform_matrix.T @ np.array([0,0,0,1], dtype=np.float64)
         
         # print(self.target_joint_grandparent_transform_matrix)
         # print("ga:", global_pos_a)
@@ -121,7 +121,7 @@ class BVH_IK:
         self.alpha_degree = np.rad2deg(alpha_degree_after - alpha_degree_before)
         # print(np.clip((len_ab*len_ab + len_at*len_at - len_bc*len_bc) / (2*len_ab*len_at),-1,1))
 
-        global_alpha_axis = np.zeros((4,), dtype=np.float32)
+        global_alpha_axis = np.zeros((4,), dtype=np.float64)
         global_alpha_axis[:3] = np.cross(global_pos_c[:3] - global_pos_a[:3], global_pos_b[:3] - global_pos_a[:3])
         self.global_alpha_axis = global_alpha_axis
 
@@ -131,13 +131,13 @@ class BVH_IK:
 
         self.beta_degree = np.rad2deg(beta_degree_after - beta_degree_before)
 
-        # global_beta_axis = np.zeros((4,), dtype=np.float32)
+        # global_beta_axis = np.zeros((4,), dtype=np.float64)
         # global_beta_axis[:3] = np.cross(global_pos_c[:3] - global_pos_a[:3], global_pos_b[:3] - global_pos_a[:3])
         self.global_beta_axis = global_alpha_axis
 
         #calc tau
         self.tau_degree = np.rad2deg(np.arccos(np.clip(np.dot(utils.numpy_get_unit(global_pos_c - global_pos_a), utils.numpy_get_unit(desired_position - global_pos_a)), -1+eps, 1-eps)))
-        global_tau_axis = np.zeros((4,), dtype=np.float32)
+        global_tau_axis = np.zeros((4,), dtype=np.float64)
         global_tau_axis[:3] = np.cross(global_pos_c[:3] - global_pos_a[:3], desired_position[:3] - global_pos_a[:3])
         self.global_tau_axis = global_tau_axis
 

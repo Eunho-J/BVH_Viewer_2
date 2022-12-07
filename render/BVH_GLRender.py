@@ -27,7 +27,7 @@ class BVH_GLRenderer(GLRenderer):
         self.ik.ik_target_skeleton = skeleton
 
     def reset_desired_position(self):
-        self.ik_desired_position = self.ik.target_joint_transform_matrix.T @ np.array([0,0,0,1], dtype=np.float32)
+        self.ik_desired_position = self.ik.target_joint_transform_matrix.T @ np.array([0,0,0,1], dtype=np.float64)
         self.ik.calculate_ik(self.motion.get_posture_at(self.ik_frame), self.ik_target_joint, self.ik_desired_position)
 
     def move_desired_position(self, translation: np.ndarray):
@@ -45,6 +45,23 @@ class BVH_GLRenderer(GLRenderer):
         gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE)
         self.gl_camera.lookAt()
 
+
+        gl.glPointSize(8)
+        gl.glColor3ub(255, 153, 255)
+        for particle in self.particle_system.particles:
+            gl.glBegin(gl.GL_POINTS)
+            gl.glVertex3f(particle.position[0], particle.position[1], particle.position[2])
+            gl.glEnd()
+            
+        gl.glPointSize(1)
+        gl.glColor3ub(255,255,50)
+        for force in self.particle_system.forces:
+            if force.force_type == ForceType.damped_spring:
+                force: Damped_Spring_Force = force
+                gl.glBegin(gl.GL_LINES)
+                gl.glVertex3f(force.p.position[0], force.p.position[1], force.p.position[2])
+                gl.glVertex3f(force.p2.position[0], force.p2.position[1], force.p2.position[2])
+                gl.glEnd()
 
         if self.render_abs_axis:
             GLRenderer.gl_render_axis(1)
@@ -186,4 +203,4 @@ class BVH_GLRenderer(GLRenderer):
         self.ik_desired_position = None
         if self.ik_target_joint is not None:
             self.ik.calculate_ik(self.motion.get_posture_at(self.ik_frame), self.ik_target_joint, self.ik_desired_position)
-            self.ik_desired_position = self.ik.target_joint_transform_matrix.T @ np.array([0,0,0,1], dtype=np.float32)
+            self.ik_desired_position = self.ik.target_joint_transform_matrix.T @ np.array([0,0,0,1], dtype=np.float64)
