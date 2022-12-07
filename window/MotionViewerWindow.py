@@ -265,10 +265,9 @@ class MotionViewerWindow(QMainWindow):
         
         if plane is None:
             self._plane_add(norm, passpoint, k, myu, collision, contact)
-            pass
         else:
             # update existing
-            pass
+            plane.overwrite(norm, passpoint, k, myu, collision, contact)
         
 
     def _particle_spring_write(self):
@@ -309,23 +308,15 @@ class MotionViewerWindow(QMainWindow):
         self.comboBox_particle_spring_p1.addItem(name, particle)
         self.comboBox_particle_spring_p2.addItem(name, particle)
         self.comboBox_particle_simple_write.addItem(name, particle)
-        if particle is not None:
-            self._particle_dynamics_add_delete(name, particle)
         
     def _cube_comboBox_add_item(self, name, cube):
         self.comboBox_particle_cube_write.addItem(name, cube)
-        if cube is not None:
-            self._particle_dynamics_add_delete(name, cube)
         
     def _spring_comboBox_add_item(self, name, spring):
         self.comboBox_particle_spring_write.addItem(name, spring)
-        if spring is not None:
-            self._particle_dynamics_add_delete(name, spring)
         
     def _plane_comboBox_add_item(self, name, plane):
         self.comboBox_particle_plane_write.addItem(name, plane)
-        if plane is not None:
-            self._particle_dynamics_add_delete(name, plane)
         
     def _particle_dynamics_add_delete(self, name, target):
         self.comboBox_particle_delete.addItem(name, target)

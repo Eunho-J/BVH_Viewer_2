@@ -315,10 +315,15 @@ class Infinite_Plane_Collider(Collider):
 
         if np.dot(down_force, up_direction) < 0: 
             # means down_force is actually down directing
+
+            if np.linalg.norm(parallel_velocity) < self.eps * self.myu:
+                particle.velocity -= parallel_velocity
+                parallel_velocity -= parallel_velocity
+
             friction_for_velocity = np.array([0,0,0,0], dtype=np.float64)
             particle.force = parallel_force.copy()
             if np.linalg.norm(parallel_velocity) > 0:
-                friction_for_velocity = dt * self.myu * np.linalg.norm(down_force) * utils.numpy_get_unit(parallel_velocity)
+                friction_for_velocity = self.myu * np.linalg.norm(down_force) * utils.numpy_get_unit(parallel_velocity)
 
             maximum_friction_force = particle.mass * parallel_velocity / dt
             
@@ -327,7 +332,7 @@ class Infinite_Plane_Collider(Collider):
 
             friction_for_current_force = np.array([0,0,0,0], dtype=np.float64)
             if np.linalg.norm(particle.force) > 0:
-                friction_for_current_force = dt * self.myu * np.linalg.norm(down_force) * utils.numpy_get_unit(particle.force)
+                friction_for_current_force = self.myu * np.linalg.norm(down_force) * utils.numpy_get_unit(particle.force)
             
             if np.linalg.norm(friction_for_current_force) > np.linalg.norm(particle.force):
                 particle.force -= particle.force
@@ -336,8 +341,6 @@ class Infinite_Plane_Collider(Collider):
 
             particle.force -= friction_for_velocity
 
-        if np.linalg.norm(parallel_velocity) < self.eps * self.myu / dt:
-            particle.velocity -= particle.velocity
         
     @override
     def check_contact(self, particle: Particle, dt:float) -> bool:
@@ -348,6 +351,14 @@ class Infinite_Plane_Collider(Collider):
                 return True
 
         return False
+
+    def overwrite(self, norm, passpoint, k, myu, collision, contact):
+        self.norm = norm
+        self.passpoint = passpoint
+        self.k = k
+        self.myu = myu
+        self.collision_enabled = collision
+        self.contact_enabled = contact
 
 
     
