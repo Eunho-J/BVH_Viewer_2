@@ -130,13 +130,14 @@ class Particle_System:
             if particle.pinned:
                 continue
             
-            for collider in self.colliders:
-                if collider.check_contact(particle, dt):
-                    collider.apply_contact(particle, dt)
 
             #update position
             particle.position_prev = particle.position.copy()
             particle.position += particle.velocity * dt
+            
+            for collider in self.colliders:
+                if collider.check_contact(particle, dt):
+                    collider.apply_contact(particle, dt)
             #update velocity
             particle.velocity += particle.force * dt / particle.mass
         
@@ -145,7 +146,6 @@ class Particle_System:
         
     def semi_implicit_euler_step(self, dt:float) -> None:
         dt = dt / 1000
-        
         self._clear_forces()
         self._compute_forces()
         
@@ -153,6 +153,7 @@ class Particle_System:
         for i, particle in enumerate(self.particles):
             if particle.pinned:
                 continue
+            
             for collider in self.colliders:
                 if collider.check_contact(particle, dt):
                     collider.apply_contact(particle, dt)
@@ -317,7 +318,7 @@ class Infinite_Plane_Collider(Collider):
             # means down_force is actually down directing
 
             if np.linalg.norm(parallel_velocity) < self.eps * self.myu:
-                particle.velocity -= parallel_velocity
+                particle.velocity = utils.decompose_by(particle.velocity, self.norm)
                 parallel_velocity -= parallel_velocity
 
             friction_for_velocity = np.array([0,0,0,0], dtype=np.float64)
@@ -330,14 +331,14 @@ class Infinite_Plane_Collider(Collider):
             if np.linalg.norm(friction_for_velocity) > np.linalg.norm(maximum_friction_force):
                 friction_for_velocity = maximum_friction_force
 
-            friction_for_current_force = np.array([0,0,0,0], dtype=np.float64)
-            if np.linalg.norm(particle.force) > 0:
-                friction_for_current_force = self.myu * np.linalg.norm(down_force) * utils.numpy_get_unit(particle.force)
+            # friction_for_current_force = np.array([0,0,0,0], dtype=np.float64)
+            # if np.linalg.norm(particle.force) > 0:
+            #     friction_for_current_force = self.myu * np.linalg.norm(down_force) * utils.numpy_get_unit(particle.force)
             
-            if np.linalg.norm(friction_for_current_force) > np.linalg.norm(particle.force):
-                particle.force -= particle.force
-            else:
-                particle.force -= friction_for_current_force
+            # if np.linalg.norm(friction_for_current_force) > np.linalg.norm(particle.force):
+            #     particle.force -= particle.force
+            # else:
+            #     particle.force -= friction_for_current_force
 
             particle.force -= friction_for_velocity
 
