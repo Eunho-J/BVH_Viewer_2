@@ -49,6 +49,7 @@ class BVH_GLRenderer(GLRenderer):
         gl.glPointSize(8)
         gl.glColor3ub(255, 153, 255)
         for particle in self.particle_system.particles:
+            print(particle.position[1])
             gl.glBegin(gl.GL_POINTS)
             gl.glVertex3f(particle.position[0], particle.position[1], particle.position[2])
             gl.glEnd()

@@ -281,8 +281,9 @@ class Infinite_Plane_Collider(Collider):
         decomposed_movement = utils.decompose_by(particle.position - collision_point, self.norm)
         decomposed_velocity = utils.decompose_by(particle.velocity, self.norm)
     
-        particle.position_prev = collision_point - self.eps * decomposed_movement
-        
+        particle.position_prev = collision_point - self.eps * self.eps * utils.numpy_get_unit(decomposed_movement)
+        # particle.position_prev = collision_point
+                
         particle.position -= (1 + self.k) * decomposed_movement
         particle.velocity -= (1 + self.k) * decomposed_velocity
         
@@ -318,8 +319,9 @@ class Infinite_Plane_Collider(Collider):
             # means down_force is actually down directing
 
             if np.linalg.norm(parallel_velocity) < self.eps * self.myu:
-                particle.velocity = utils.decompose_by(particle.velocity, self.norm)
+                # particle.velocity = utils.decompose_by(particle.velocity, self.norm)
                 parallel_velocity -= parallel_velocity
+                particle.velocity = parallel_velocity.copy()
 
             friction_for_velocity = np.array([0,0,0,0], dtype=np.float64)
             particle.force = parallel_force.copy()
